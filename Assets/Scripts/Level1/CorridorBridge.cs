@@ -19,15 +19,42 @@ namespace PerspectivePuzzle.Level1
             public float top;
         }
 
-        public static readonly Vector3 PoleStand = new Vector3(-6.05f, 12.49f, -5.75f);
+        public static readonly Vector3 PoleStand = new Vector3(-7.25f, 12.28f, -5.75f);
         /// <summary>
         /// Step from the landing lip onto the balcony. Screen length collapses only at the corridor yaw.
         /// </summary>
         public static readonly Vector3 StairLandingSeam = new Vector3(-0.45f, 0.05f, 0f);
         public static readonly Vector3 SpeakerRest = new Vector3(0f, 0.55f, 0f);
-        public static readonly Vector3 ShelfS4 = new Vector3(-7.53f, 10.66f, -6.79f);
-        public static readonly Vector3 ShelfLip = new Vector3(-8.00f, 10.66f, -6.80f);
-        public static readonly Vector3 SlopeFoot = new Vector3(-8.00f, 11.18f, -6.80f);
+        // Cube.021 shelf top 10.00, Cube.041 south wall top 10.62, Plane eave 11.185 at x=-8.5.
+        public static readonly Vector3 ShelfS4 = new Vector3(-8.10f, 10.04f, -6.20f);
+        public static readonly Vector3 ShelfLip = new Vector3(-8.50f, 10.66f, -6.62f);
+        public static readonly Vector3 SlopeFoot = new Vector3(-8.50f, 11.22f, -6.62f);
+
+        // CauThang1: center x 0.08, rises +z. Tread k top = 1.17 + 0.30k, centered z = -0.85 + 0.50k. Top tread 5.07.
+        public static readonly string[] LowerTreads =
+        {
+            "Tread1", "L2", "L3", "L4", "L5", "L6", "L7", "Tread2", "L8", "L9", "Tread3", "L11", "L12"
+        };
+        public static readonly Vector3 StairTop = new Vector3(0.08f, 5.11f, 5.80f);
+
+        // CauThang2: center x 1.6, rises -z from the Tang2 walkway. Tread j top = 5.35 + 0.30j, z = 5.62 - 0.50j.
+        // Up10 stands on its top landing (8.05) beside Tang3.
+        public static readonly string[] UpperTreads =
+        {
+            "Up1", "Up2", "Up3", "Up4", "Up5", "Up6", "Up7", "Up8", "Up9", "Up10"
+        };
+
+        public static Vector3 LowerTread(int k)
+        {
+            return new Vector3(0.08f, 1.21f + 0.30f * k, -0.85f + 0.50f * k);
+        }
+
+        public static Vector3 UpperTread(int j)
+        {
+            if (j >= 9)
+                return new Vector3(1.60f, 8.09f, 0.75f);
+            return new Vector3(1.60f, 5.39f + 0.30f * j, 5.62f - 0.50f * j);
+        }
 
         public static bool TryJoin(IList<FloorRect> floors, out Vector3 approachLip, out Vector3 otherLip)
         {
@@ -147,127 +174,105 @@ namespace PerspectivePuzzle.Level1
             Transform roomFocus,
             RoomInteractable cabinet)
         {
-            const float ground = 0.97f;
-            const float upper = 8.11f;
+            // All heights below are surface + 0.04, measured on the GỜ ÊM GÊM triangles (BuildingRoot local).
+            const float ground = 0.97f;   // Tang1 courtyard 0.93
+            const float floor2 = 5.34f;   // Tang2 walkway and room 5.30
+            const float floor3 = 8.09f;   // Tang3 8.05
 
-            Put(FindNode(nodes, "A"), root, new Vector3(-4.2f, ground, 0.2f));
-            Put(start, root, new Vector3(-4.2f, ground, 0.2f));
+            // Round 1, red: courtyard, up CauThang1 (rises +z, treads every 0.5 m, 0.30 m rise), onto the landing.
+            Put(FindNode(nodes, "A"), root, new Vector3(-3.00f, ground, -1.00f));
+            Put(start, root, new Vector3(-3.00f, ground, -1.00f));
             PathNode a2 = FindNode(nodes, "A2");
             PathNode stair = FindNode(nodes, "Stair");
-            Put(a2, root, new Vector3(0.25f, ground, -0.95f));
-            // One node on each Plane.002 tread. A longer diagonal leaves the steps.
-            string[] lowerNames =
-            {
-                "Tread1", "L2", "L3", "L4", "L5", "L6", "L7", "Tread2", "L8", "L9", "Tread3", "L11"
-            };
-            Vector3[] lowerPos =
-            {
-                new Vector3(0.75f, 1.36f, -0.10f),
-                new Vector3(0.75f, 1.68f, 0.44f),
-                new Vector3(0.75f, 2.02f, 0.99f),
-                new Vector3(0.75f, 2.31f, 1.46f),
-                new Vector3(0.75f, 2.60f, 1.95f),
-                new Vector3(0.75f, 2.90f, 2.44f),
-                new Vector3(0.75f, 3.19f, 2.92f),
-                new Vector3(0.75f, 3.49f, 3.42f),
-                new Vector3(0.75f, 3.80f, 3.93f),
-                new Vector3(0.75f, 4.10f, 4.42f),
-                new Vector3(0.75f, 4.39f, 4.90f),
-                new Vector3(0.75f, 4.70f, 5.41f)
-            };
+            Put(a2, root, new Vector3(0.08f, ground, -1.55f));
             if (a2 != null && stair != null)
                 a2.Unlink(stair);
             PathNode prev = a2;
-            for (int i = 0; i < lowerNames.Length; i++)
+            for (int i = 0; i < LowerTreads.Length; i++)
             {
-                PathNode step = Ensure(nodes, lowerNames[i], root, lowerPos[i]);
+                PathNode step = Ensure(nodes, LowerTreads[i], root, LowerTread(i));
                 if (prev != null)
                     prev.Link(step);
                 prev = step;
             }
-            Put(stair, root, StairSpan.NearLip);
+            // Top tread of CauThang1 (5.07).
+            Put(stair, root, StairTop);
             if (prev != null && stair != null)
                 prev.Link(stair);
             HideDeck("LedgeNear");
             HideDeck("LedgeFar");
             BuildLip(root);
-            PathNode landing = Ensure(nodes, "Landing", root, new Vector3(4.60f, 5.34f, 4.60f));
-            PathNode spanFar = Ensure(nodes, "SpanFar", root, StairSpan.FarLip);
-            PathNode nearMid = Ensure(nodes, "NearMid", root, new Vector3(3.70f, 5.34f, 5.50f));
-            if (stair != null)
-            {
-                stair.Unlink(gapFrom);
-                stair.Unlink(landing);
-            }
-            if (spanFar != null)
-                spanFar.Link(landing);
-            landing.Link(nearMid);
-            if (nearMid != null)
-                nearMid.Link(gapFrom);
+            ClearNode(nodes, "Landing");
+            ClearNode(nodes, "SpanFar");
+            ClearNode(nodes, "NearMid");
 
-            Put(gapFrom, root, new Vector3(3.20f, 5.34f, 6.20f));
-            Put(gapTo, root, new Vector3(5.20f, 5.34f, 3.60f));
-            if (gapFrom != null && gapTo != null)
-                gapFrom.Link(gapTo);
-            const float yRoom = 5.34f;
-            Put(speaker, root, new Vector3(5.60f, yRoom, 2.20f));
-            Put(door, root, new Vector3(4.40f, yRoom, 1.20f));
-            Put(roomFocus, root, new Vector3(5.20f, yRoom + 1.2f, 2.80f));
-            Put(cabinet, root, new Vector3(6.00f, yRoom + 0.86f, 1.80f));
-            Put(root.Find("Table"), root, new Vector3(4.80f, yRoom + 0.41f, 4.00f));
-            Put(root.Find("Shelf"), root, new Vector3(6.20f, yRoom + 0.86f, 3.60f));
+            // B: the landing on Tang2 at the head of CauThang1. Dead end until the corridor yaw.
+            Put(gapFrom, root, new Vector3(0.10f, floor2, 6.50f));
+            if (stair != null && gapFrom != null)
+                stair.Link(gapFrom);
+            // C: inside the tầng 2 room. The board links B-C only at the corridor yaw.
+            Put(gapTo, root, new Vector3(3.40f, floor2, 6.30f));
+            Put(speaker, root, new Vector3(5.00f, floor2, 2.70f));
+            Put(door, root, new Vector3(2.60f, floor2, 6.55f));
+            Put(roomFocus, root, new Vector3(4.20f, floor2 + 1.2f, 3.80f));
+            // Click proxies sit on the real furniture: TuBuffet (cabinet), Cube.048 (dining table), the fan.
+            Put(cabinet, root, new Vector3(5.70f, 5.95f, 2.72f));
+            Put(root.Find("Table"), root, new Vector3(3.90f, 5.65f, 3.00f));
+            Put(root.Find("Shelf"), root, new Vector3(4.90f, 5.70f, 4.65f));
 
-            // Dog stays on Plane.002, the lower stair. It is a branch, not the way up.
+            // Round 2, blue: out of the room along the walkway to the foot of CauThang2 (rises -z).
+            Ensure(nodes, "Hall", root, new Vector3(1.60f, floor2, 6.45f));
+            for (int i = 0; i < UpperTreads.Length; i++)
+                Ensure(nodes, UpperTreads[i], root, UpperTread(i));
+            // The dog walks CauThang2. Its trap node is the fourth tread.
             PathNode dog = FindNode(nodes, "Dog");
-            Put(dog, root, new Vector3(0.90f, 3.49f, 3.42f));
+            Put(dog, root, UpperTread(3));
             if (door != null && dog != null)
                 door.Unlink(dog);
             PathNode safe = FindNode(nodes, "Safe");
             if (door != null && safe != null)
                 door.Unlink(safe);
-            Put(safe, root, new Vector3(1.50f, upper, 2.00f));
+            Put(safe, root, UpperTread(6));
 
-            // Plane.003, one node on each tread, from the foot beside the landing up to Cube.056.
-            Ensure(nodes, "Up1", root, new Vector3(2.25f, 4.83f, 5.40f));
-            Ensure(nodes, "Up2", root, new Vector3(2.25f, 5.13f, 4.90f));
-            Ensure(nodes, "Up3", root, new Vector3(2.25f, 5.43f, 4.40f));
-            Ensure(nodes, "Up4", root, new Vector3(2.25f, 5.73f, 3.90f));
-            Ensure(nodes, "Up5", root, new Vector3(2.25f, 6.03f, 3.40f));
-            Ensure(nodes, "Up6", root, new Vector3(2.25f, 6.33f, 2.90f));
-            Ensure(nodes, "Up7", root, new Vector3(2.25f, 6.63f, 2.40f));
-            Ensure(nodes, "Up8", root, new Vector3(2.25f, 6.93f, 1.90f));
-            Ensure(nodes, "Up9", root, new Vector3(2.25f, 7.23f, 1.40f));
-            Ensure(nodes, "Up10", root, new Vector3(2.25f, 7.53f, 0.48f));
-            EnsureMark(nodes, "E", root, new Vector3(2.40f, upper, 0.35f));
-            Put(FindNode(nodes, "F"), root, new Vector3(5.50f, upper, -2.00f));
-            Put(FindNode(nodes, "I"), root, new Vector3(6.40f, upper, 2.80f));
-            Put(FindNode(nodes, "L"), root, new Vector3(3.00f, upper, -5.20f));
-            Put(FindNode(nodes, "G"), root, new Vector3(1.20f, upper, -2.80f));
-            // Cube.056 ends at x=0 and Cube.040 starts at x=-1. One stride across that crack, then the west shelves.
-            Ensure(nodes, "LipE", root, new Vector3(0.25f, upper, -3.40f));
-            Ensure(nodes, "LipW", root, new Vector3(-1.15f, 8.09f, -3.40f));
-            Ensure(nodes, "WestA", root, new Vector3(-4.20f, 8.09f, -4.80f));
-            Ensure(nodes, "WestB", root, new Vector3(-7.15f, 8.09f, -6.20f));
-            // Cube.021's first tread is 1.04 m above Cube.040. Cube.041's own lip steps 0.27 then 0.86.
-            Ensure(nodes, "Wlip", root, new Vector3(-8.22f, 8.36f, -4.20f));
-            Ensure(nodes, "Wmid", root, new Vector3(-8.22f, 9.22f, -4.90f));
-            Ensure(nodes, "Whip", root, new Vector3(-8.22f, 9.22f, -6.40f));
-            Ensure(nodes, "S1", root, new Vector3(-7.42f, 9.13f, -6.38f));
-            Ensure(nodes, "S2", root, new Vector3(-7.42f, 9.55f, -6.38f));
-            Ensure(nodes, "S3", root, new Vector3(-7.42f, 10.04f, -6.38f));
+            // Tang3 (8.05). Walls at x=4.0 and x=5.5 run from z=-1.25 to -6.5, so the east strip (x 5.75..7.25)
+            // and the middle corridor (x 2.75..3.75) only meet along the open north band (z -1.0..0.5).
+            EnsureMark(nodes, "E", root, new Vector3(3.10f, floor3, 1.00f));
+            Ensure(nodes, "EF1", root, new Vector3(3.25f, floor3, -0.25f));
+            Ensure(nodes, "EF2", root, new Vector3(6.50f, floor3, -0.25f));
+            Put(FindNode(nodes, "F"), root, new Vector3(6.50f, floor3, -1.60f));
+            Put(FindNode(nodes, "I"), root, new Vector3(6.50f, floor3, -5.70f));
+            Put(FindNode(nodes, "L"), root, new Vector3(3.00f, floor3, -4.60f));
+            Ensure(nodes, "LG1", root, new Vector3(0.00f, floor3, -3.30f));
+            // Middle band corner (-0.6,-2.8) to west wing corner (-1.8,-2.7): one stride over the stairwell crack.
+            Ensure(nodes, "LipE", root, new Vector3(-0.45f, floor3, -2.95f));
+            Ensure(nodes, "LipW", root, new Vector3(-1.95f, floor3, -2.55f));
+            Put(FindNode(nodes, "G"), root, new Vector3(-4.40f, floor3, -2.50f));
+            // West wing to the west strip: a 1.5 m planter wall (x -7.67..-6.87, top 9.55) seals the strip.
+            // Climb the Cube.024 bench (8.96), the planter soil (9.55), then the Cube.041 wall top (9.00).
+            Ensure(nodes, "WFloor", root, new Vector3(-5.35f, floor3, -2.55f));
+            Ensure(nodes, "WBench", root, new Vector3(-6.10f, 9.00f, -1.95f));
+            Ensure(nodes, "WWall", root, new Vector3(-7.27f, 9.59f, -1.60f));
+            Ensure(nodes, "C041a", root, new Vector3(-8.95f, 9.04f, -2.00f));
+            Ensure(nodes, "C041b", root, new Vector3(-8.95f, 9.04f, -3.10f));
+            // Cube.041 west shelves: 8.32 (z -4.2..-3.4), 9.18 (z -6.6..-4.6). Cube.021 top 10.00.
+            Ensure(nodes, "Wmid", root, new Vector3(-8.90f, 8.36f, -3.85f));
+            Ensure(nodes, "Whip", root, new Vector3(-8.90f, 9.24f, -4.90f));
+            Ensure(nodes, "S1", root, new Vector3(-8.90f, 9.24f, -6.20f));
             Ensure(nodes, "S4", root, ShelfS4);
             Ensure(nodes, "ShelfW", root, ShelfLip);
-            Vector3 slope = SlopeFoot;
-            if (TryMeshHeight(root, "Plane", slope.x, slope.z, out float slopeY))
-                slope.y = slopeY + 0.04f;
-            Ensure(nodes, "SlopeS", root, slope);
-            Ensure(nodes, "PlaneA", root, new Vector3(-7.50f, 11.36f, -6.20f));
-            Ensure(nodes, "PlaneB", root, new Vector3(-7.05f, 11.52f, -3.20f));
-            Ensure(nodes, "RoofA", root, new Vector3(-6.55f, 11.78f, -3.20f));
-            Ensure(nodes, "RoofB", root, new Vector3(-5.80f, 12.28f, -4.20f));
-            Put(FindNode(nodes, "M"), root, new Vector3(-5.60f, 12.49f, -5.30f));
+            Ensure(nodes, "SlopeS", root, SlopeFoot);
+            Ensure(nodes, "PlaneA", root, new Vector3(-8.10f, 11.37f, -5.60f));
+            Put(FindNode(nodes, "M"), root, new Vector3(-7.30f, 12.28f, -4.70f));
             Put(FindNode(nodes, "Pole"), root, PoleStand);
             Put(root.Find("PoleAnchor"), root, PoleStand + SpeakerRest);
+            ClearNode(nodes, "WestA");
+            ClearNode(nodes, "WestB");
+            ClearNode(nodes, "Wlip");
+            ClearNode(nodes, "S2");
+            ClearNode(nodes, "S3");
+            ClearNode(nodes, "PlaneB");
+            ClearNode(nodes, "RoofA");
+            ClearNode(nodes, "RoofB");
             return true;
         }
 
@@ -598,6 +603,21 @@ namespace PerspectivePuzzle.Level1
             Transform bar = parent.Find(name);
             if (bar != null)
                 Object.Destroy(bar.gameObject);
+        }
+
+        static void ClearNode(Transform nodes, string name)
+        {
+            Transform old = nodes.Find(name);
+            if (old == null)
+                return;
+            PathNode node = old.GetComponent<PathNode>();
+            if (node != null)
+            {
+                var neighbors = new List<PathNode>(node.Neighbors);
+                for (int i = 0; i < neighbors.Count; i++)
+                    node.Unlink(neighbors[i]);
+            }
+            Object.Destroy(old.gameObject);
         }
 
         static void BuildLip(Transform root)

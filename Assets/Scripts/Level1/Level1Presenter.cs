@@ -34,6 +34,56 @@ namespace PerspectivePuzzle.Level1
             dim = Mathf.Clamp01(value);
         }
 
+        public bool EndScreen { get; private set; }
+        string endTitle;
+        string endLine;
+        float endShownAt;
+
+        public void ShowEndScreen(string title, string line)
+        {
+            EndScreen = true;
+            endTitle = title;
+            endLine = line;
+            endShownAt = Time.unscaledTime;
+            caption = null;
+            hint = null;
+            objective = null;
+            showRotate = false;
+            dim = 1f;
+        }
+
+        void Update()
+        {
+            if (EndScreen && Time.unscaledTime - endShownAt > 1.5f && Input.GetKeyDown(KeyCode.Escape))
+                Application.Quit();
+        }
+
+        void DrawEnd(float width, float height)
+        {
+            GUI.color = new Color(0.03f, 0.035f, 0.04f, 1f);
+            GUI.DrawTexture(new Rect(0f, 0f, width, height), Texture2D.whiteTexture);
+            float a = Mathf.Clamp01((Time.unscaledTime - endShownAt) / 1.2f);
+            Color ink = new Color(0.93f, 0.9f, 0.82f, a);
+            GUI.color = ink;
+            body.normal.textColor = ink;
+            GUI.Label(new Rect(width * 0.12f, height * 0.36f, width * 0.76f, 140f), endTitle, body);
+            float b = Mathf.Clamp01((Time.unscaledTime - endShownAt - 1.2f) / 1.2f);
+            Color soft = new Color(0.93f, 0.78f, 0.45f, b);
+            prompt.normal.textColor = soft;
+            GUI.color = soft;
+            GUI.Label(new Rect(width * 0.12f, height * 0.36f + 150f, width * 0.76f, 40f), endLine, prompt);
+            if (b >= 1f)
+            {
+                Color faint = new Color(0.7f, 0.7f, 0.66f, 0.7f);
+                small.normal.textColor = faint;
+                small.alignment = TextAnchor.MiddleCenter;
+                GUI.color = faint;
+                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Level 1 complete  -  Esc to quit", small);
+                small.alignment = TextAnchor.MiddleLeft;
+            }
+            GUI.color = Color.white;
+        }
+
         void OnGUI()
         {
             EnsureStyles();
@@ -42,6 +92,13 @@ namespace PerspectivePuzzle.Level1
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
             float width = Screen.width / scale;
             float height = Screen.height / scale;
+
+            if (EndScreen)
+            {
+                DrawEnd(width, height);
+                GUI.matrix = saved;
+                return;
+            }
 
             if (dim > 0.01f)
             {
@@ -60,16 +117,21 @@ namespace PerspectivePuzzle.Level1
 
             if (!string.IsNullOrEmpty(caption))
             {
-                float boxHeight = 150f;
-                float y = height * 0.58f;
                 float alpha = Mathf.Clamp01(captionAlpha);
-                Rect plate = new Rect(width * 0.1f, y, width * 0.8f, boxHeight);
+                bool intro = dim > 0.5f;
+                float plateWidth = intro ? width * 0.8f : Mathf.Min(width * 0.7f, 1100f);
+                float textWidth = plateWidth - 48f;
+                float boxHeight = intro ? 150f : Mathf.Max(56f, body.CalcHeight(new GUIContent(caption), textWidth) + 24f);
+                float bottom = showRotate ? height - 160f : height - 76f;
+                float y = intro ? height * 0.58f : bottom - boxHeight;
+                float x = (width - plateWidth) * 0.5f;
+                Rect plate = new Rect(x, y, plateWidth, boxHeight);
                 Color wash = HudColors.Plate;
                 wash.a *= alpha;
                 GUI.color = wash;
                 GUI.DrawTexture(plate, Texture2D.whiteTexture);
                 GUI.color = new Color(HudColors.Ink.r, HudColors.Ink.g, HudColors.Ink.b, alpha);
-                GUI.Label(new Rect(width * 0.12f, y + 18f, width * 0.76f, boxHeight - 36f), caption, body);
+                GUI.Label(new Rect(x + 24f, y + 12f, textWidth, boxHeight - 24f), caption, body);
                 GUI.color = Color.white;
             }
 

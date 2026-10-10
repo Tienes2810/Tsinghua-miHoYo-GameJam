@@ -54,29 +54,30 @@ namespace PerspectivePuzzle.Level1
         [SerializeField] Transform poleAnchor;
 
         PathNode nodeE;
-        static readonly string[] LowerSteps =
-        {
-            "A2", "Tread1", "L2", "L3", "L4", "L5", "L6", "L7", "Tread2", "L8", "L9", "Tread3", "L11"
-        };
-        static readonly string[] UpperSteps =
-        {
-            "Up1", "Up2", "Up3", "Up4", "Up5", "Up6", "Up7", "Up8", "Up9", "Up10"
-        };
+        static readonly string[] LowerSteps = BuildLowerSteps();
+        static readonly string[] UpperSteps = CorridorBridge.UpperTreads;
         static readonly string[] PoleSteps =
         {
-            "LipE", "LipW", "WestA", "WestB", "Wlip", "Wmid", "Whip", "S1", "S2", "S3", "S4", "ShelfW", "SlopeS", "PlaneA", "PlaneB", "RoofA", "RoofB"
+            "WFloor", "WBench", "WWall", "C041a", "C041b", "Wmid", "Whip", "S1", "S4", "ShelfW", "SlopeS", "PlaneA"
         };
+        // Tang3 detours: the east strip and the middle corridor only meet on the north band.
+        static readonly string[] FSteps = { "EF1", "EF2" };
+        static readonly string[] LSteps = { "EF2", "EF1" };
+        static readonly string[] GSteps = { "LG1", "LipE", "LipW" };
+        static readonly Vector3 DogRest = new Vector3(-5.80f, 5.34f, 6.30f);
+
+        static string[] BuildLowerSteps()
+        {
+            var steps = new string[CorridorBridge.LowerTreads.Length + 1];
+            steps[0] = "A2";
+            for (int i = 0; i < CorridorBridge.LowerTreads.Length; i++)
+                steps[i + 1] = CorridorBridge.LowerTreads[i];
+            return steps;
+        }
 
         bool dogBusy;
         string routeShown = "";
-        Transform dogStair;
-        Quaternion stairBaseRot;
-        Vector3 stairBasePos;
-        Vector3 stairCenterLocal;
-        Vector3 stairCenterRoot;
-        bool stairReady;
         Transform dogPatrol;
-        Vector3[] dogLocal;
         float dogWalk;
 
         public string performanceBase;
@@ -85,6 +86,18 @@ namespace PerspectivePuzzle.Level1
         float idle;
         bool roomHinted;
         Coroutine captionRoutine;
+        bool followRoom;
+        float roomOrtho = 5.8f;
+
+        /// <summary>House yaw that shows the cupboard once the upper floors are cut away.</summary>
+        public const float RoomViewYaw = 280f;
+
+        void FollowRoom()
+        {
+            if (!followRoom || rig == null || roomFocus == null)
+                return;
+            rig.MoveFocus(roomFocus.position, roomOrtho);
+        }
 
         public Level1Phase Phase => phase;
         public bool PuzzleOpen { get; private set; }
@@ -165,10 +178,14 @@ namespace PerspectivePuzzle.Level1
             if (rotator != null)
                 rotator.transform.rotation = Quaternion.identity;
             CorridorBridge.Align(nodeA, nodeB, nodeC, nodeSpeaker, nodeDoor, roomFocus, cabinet);
-            StairSpan.Ensure(rotator != null ? rotator.transform : null);
             CacheClimb();
+            HideProxies();
             if (board != null)
+            {
                 board.KeepPair(nodeB, nodeC);
+                // The scene still serializes this link at 90. The corridor yaw is measured at 315.
+                board.MatchCorridor(nodeB, nodeC, StoryProgress.CorridorYaw);
+            }
             FillOpenRoute();
             HideNode(nodeDog);
             HideNode(nodeSafe);
@@ -190,6 +207,7 @@ namespace PerspectivePuzzle.Level1
             if (cabinet != null)
                 cabinet.SetSpeakerReady(false);
             StyleCassette();
+            ResolveHand();
             StartCoroutine(Intro());
         }
 
@@ -208,7 +226,7 @@ namespace PerspectivePuzzle.Level1
             }
 
             ObserveYaw();
-            PoseDogStair();
+            WalkDog();
 
             bool waiting = phase == Level1Phase.NeedRotate || phase == Level1Phase.InRoom
                 || phase == Level1Phase.NeedStair || phase == Level1Phase.Round2 || phase == Level1Phase.ToRoof;
@@ -223,13 +241,14 @@ namespace PerspectivePuzzle.Level1
                 presenter.hint = "Perhaps the path isn't ahead.";
 
             WatchDog();
+            FollowRoom();
 
             if (phase == Level1Phase.InRoom && idle > 35f && !roomHinted && cabinet != null && !cabinet.Used)
             {
                 roomHinted = true;
                 Say("The cupboard still keeps a few of her things.", 3.2f);
                 if (cabinet.transform != null)
-                    cabinet.transform.localScale *= 1.04f;
+                    StartCoroutine(PulseOnce(cabinet.transform));
             }
 
             ApplyCorridorGate();
@@ -341,15 +360,11 @@ namespace PerspectivePuzzle.Level1
 
             if (prop != null)
                 prop.Used = true;
-            if (markerSpeaker != null)
-                markerSpeaker.Show(true);
             story.Speaker = SpeakerPhase.Ready;
             if (cabinet != null)
                 cabinet.SetSpeakerReady(true);
-            if (nodeC != null && nodeSpeaker != null)
-                nodeC.Link(nodeSpeaker);
-            Say("There it is.", 1.6f);
             player.MovementLocked = false;
+            Pickup();
         }
 
         void OnArrived(PathNode node)
@@ -374,9 +389,47 @@ namespace PerspectivePuzzle.Level1
         {
             bool open = nodeB != null && nodeC != null && nodeB.IsLinked(nodeC);
             if (ribbon != null)
-                ribbon.Draw(openRoute, nodeB, nodeC, open);
+            {
+                if (RoundTwo())
+                    ribbon.DrawRoundTwo(RoundTwoLeg());
+                else
+                    ribbon.Draw(openRoute, nodeB, nodeC, open);
+            }
             if (markerC != null)
-                markerC.Show(open && phase != Level1Phase.Intro && phase != Level1Phase.Ending);
+                markerC.Show(open && !RoundTwo() && phase != Level1Phase.Intro && phase != Level1Phase.Ending);
+        }
+
+        readonly List<PathNode> blueLeg = new();
+
+        bool RoundTwo()
+        {
+            return phase == Level1Phase.ToExit || phase == Level1Phase.Carrying || Round2Stair()
+                || phase == Level1Phase.AtPole;
+        }
+
+        /// <summary>
+        /// Blue leg: linked nodes from the player to the target that is open right now.
+        /// </summary>
+        List<PathNode> RoundTwoLeg()
+        {
+            blueLeg.Clear();
+            if (player == null || player.CurrentNode == null)
+                return blueLeg;
+            PathNode target = null;
+            if (phase == Level1Phase.ToExit || phase == Level1Phase.Carrying)
+                target = nodeDoor;
+            else if (Round2Stair())
+            {
+                string next = story.NextRoof;
+                PathNode roof = next != null ? RoofNode(next) : null;
+                if (roof != null && story.RoofPointOpen(next, CurrentYaw()))
+                    target = roof;
+                else if (DogTrapLive(CurrentYaw()) && !dogBusy)
+                    target = nodeDog;
+            }
+            if (target != null)
+                NodePath.TryFind(player.CurrentNode, target, blueLeg);
+            return blueLeg;
         }
 
         IEnumerator Intro()
@@ -436,7 +489,7 @@ namespace PerspectivePuzzle.Level1
             if (presenter != null)
             {
                 presenter.SetObjective("Find Grandma's cassette tape. Bring it to the loudspeaker post on the rooftop.");
-                presenter.hint = "Click the gold point. Drag to turn the house.";
+                presenter.hint = "Drag to turn the house, then click the gold point.";
                 presenter.showRotate = false;
             }
         }
@@ -452,9 +505,9 @@ namespace PerspectivePuzzle.Level1
             if (!open)
             {
                 phase = Level1Phase.NeedRotate;
+                Say("Some paths only appear when we see this place from a different perspective.", 4.5f);
                 if (presenter != null)
                 {
-                    presenter.SetCaption("Some paths only appear when we see this place from a different perspective.");
                     presenter.showRotate = true;
                     presenter.hint = "Drag left / right to turn the house.";
                 }
@@ -473,8 +526,14 @@ namespace PerspectivePuzzle.Level1
             player.MovementLocked = true;
             if (presenter != null)
                 presenter.showRotate = false;
-            if (rig != null && roomFocus != null)
-                rig.MoveFocus(roomFocus.position, rig.ortho * 0.72f);
+            ShowUpperFloors(false);
+            // At the corridor yaw the room sits under the Tang3 slab and the cupboard faces away.
+            // Turn the house so the cupboard faces the camera.
+            if (rotator != null)
+                rotator.SnapTo(RoomViewYaw, 0.7f);
+            if (rig != null)
+                roomOrtho = rig.HomeOrtho * 0.72f;
+            followRoom = true;
 
             yield return new WaitForSeconds(0.75f);
             if (presenter != null)
@@ -493,23 +552,49 @@ namespace PerspectivePuzzle.Level1
             }
 
             if (presenter != null)
+            {
                 presenter.SetCaption(null);
+                presenter.hint = "Tap things in the room.";
+            }
             player.MovementLocked = false;
             idle = 0f;
         }
 
+        Transform ResolveHand()
+        {
+            if (hand != null)
+                return hand;
+            if (player != null)
+            {
+                foreach (var t in player.GetComponentsInChildren<Transform>())
+                {
+                    if (t.name.EndsWith("RightHand") || t.name.Contains("RightHand"))
+                    {
+                        hand = t;
+                        return hand;
+                    }
+                }
+            }
+            return null;
+        }
+
         void Pickup()
         {
+            Transform carryHand = ResolveHand();
             RoomInteractable speaker = cabinet != null ? cabinet.speaker : null;
-            if (speaker == null || hand == null)
-                return;
-
-            speaker.transform.SetParent(hand, true);
-            speaker.transform.localPosition = Vector3.zero;
-            speaker.transform.localScale = Vector3.one * 0.35f;
-            Collider col = speaker.GetComponent<Collider>();
-            if (col != null)
-                col.enabled = false;
+            if (speaker != null)
+            {
+                Transform parent = carryHand != null ? carryHand : (player != null ? player.transform : null);
+                if (parent != null)
+                {
+                    speaker.transform.SetParent(parent, true);
+                    speaker.transform.localPosition = carryHand != null ? Vector3.zero : new Vector3(0.2f, 0.8f, 0.2f);
+                    speaker.transform.localScale = Vector3.one * 0.35f;
+                }
+                Collider col = speaker.GetComponent<Collider>();
+                if (col != null)
+                    col.enabled = false;
+            }
 
             if (!story.TryPickup())
                 return;
@@ -523,6 +608,12 @@ namespace PerspectivePuzzle.Level1
                 markerSpeaker.Show(false);
             if (nodeC != null && nodeDoor != null)
                 nodeC.Link(nodeDoor);
+            // Round 2 walks the real Tang2 walkway: door, stair head, landing.
+            PathNode hall = FindClimb("Hall");
+            if (nodeDoor != null && hall != null)
+                nodeDoor.Link(hall);
+            if (nodeB != null && hall != null)
+                nodeB.Link(hall);
             if (nodeDoor != null && nodeDog != null)
                 nodeDoor.Unlink(nodeDog);
             ShowNode(nodeDoor, true);
@@ -539,11 +630,16 @@ namespace PerspectivePuzzle.Level1
         void EnterRound2()
         {
             phase = Level1Phase.Round2;
+            HideNode(nodeDoor);
+            followRoom = false;
+            ShowUpperFloors(true);
+            if (rig != null)
+                rig.MoveFocus(rig.HomeFocus, rig.HomeOrtho);
             if (presenter != null)
             {
                 presenter.SetCaption(null);
-                presenter.hint = "The side stair is not safe yet. Drag to turn the house.";
-                presenter.showRotate = true;
+                presenter.hint = "Take the stair up to the roof.";
+                presenter.showRotate = false;
             }
         }
 
@@ -567,9 +663,9 @@ namespace PerspectivePuzzle.Level1
             yield return new WaitForSeconds(1.4f);
             if (player != null && nodeA != null)
                 player.PlaceAt(nodeA);
+            Say("Có lẽ con đường vừa rồi không dành cho chúng ta.", 3.5f);
             if (presenter != null)
             {
-                presenter.SetCaption("Có lẽ con đường vừa rồi không dành cho chúng ta.");
                 presenter.hint = "Perhaps the path isn't ahead.";
                 presenter.showRotate = true;
             }
@@ -583,49 +679,74 @@ namespace PerspectivePuzzle.Level1
 
         IEnumerator RunDog()
         {
-            if (nodeA == null)
+            Transform root = BuildingRoot();
+            if (root == null)
                 yield break;
-            Transform root = nodeA.transform;
-            while (root.parent != null)
-                root = root.parent;
-            var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            go.name = "DogRunner";
-            go.transform.SetParent(root, false);
-            go.transform.localScale = new Vector3(0.42f, 0.22f, 0.62f);
-            Renderer rend = go.GetComponent<Renderer>();
-            if (rend != null)
-                rend.material.color = new Color(0.42f, 0.28f, 0.16f);
-            Collider col = go.GetComponent<Collider>();
-            if (col != null)
-                Destroy(col);
-            Vector3[] pts =
+            if (dogPatrol != null)
+                dogPatrol.gameObject.SetActive(false);
+            Transform go = MakeDog("DogRunner", root);
+            // Down CauThang2 toward the player on the trap tread.
+            int[] treads = { 8, 7, 6, 5, 4, 3 };
+            for (int i = 1; i < treads.Length; i++)
             {
-                new Vector3(0.75f, 1.36f, -0.10f),
-                new Vector3(0.75f, 2.02f, 0.99f),
-                new Vector3(0.75f, 2.60f, 1.95f),
-                new Vector3(0.75f, 3.19f, 2.92f),
-                new Vector3(0.75f, 3.49f, 3.42f),
-                new Vector3(0.75f, 4.10f, 4.42f),
-                new Vector3(0.75f, 4.70f, 5.41f),
-                new Vector3(0.75f, 5.00f, 5.90f)
-            };
-            for (int i = 1; i < pts.Length; i++)
-            {
-                Vector3 from = root.TransformPoint(pts[i - 1]);
-                Vector3 to = root.TransformPoint(pts[i]);
+                Vector3 from = CorridorBridge.UpperTread(treads[i - 1]) - Vector3.up * 0.04f;
+                Vector3 to = CorridorBridge.UpperTread(treads[i]) - Vector3.up * 0.04f;
                 float t = 0f;
                 while (t < 1f)
                 {
-                    t += Time.deltaTime / 0.26f;
+                    t += Time.deltaTime / 0.14f;
                     if (go == null)
                         yield break;
-                    go.transform.position = Vector3.Lerp(from, to, Mathf.Clamp01(t));
+                    go.localPosition = Vector3.Lerp(from, to, Mathf.Clamp01(t));
+                    go.localRotation = Quaternion.LookRotation(to - from - Vector3.up * (to.y - from.y), Vector3.up);
                     yield return null;
                 }
             }
 
+            yield return new WaitForSeconds(0.6f);
             if (go != null)
-                Destroy(go);
+                Destroy(go.gameObject);
+        }
+
+        /// <summary>
+        /// Low brown dog from a few primitives. No colliders, so it never pushes the player or eats clicks.
+        /// Pivot is at the paws.
+        /// </summary>
+        static Transform MakeDog(string name, Transform parent)
+        {
+            var dog = new GameObject(name).transform;
+            dog.SetParent(parent, false);
+            var brown = new Color(0.47f, 0.30f, 0.17f);
+            var dark = new Color(0.25f, 0.16f, 0.09f);
+            Part(dog, PrimitiveType.Capsule, new Vector3(0f, 0.28f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.22f, 0.26f, 0.22f), brown, true);
+            Part(dog, PrimitiveType.Sphere, new Vector3(0f, 0.40f, 0.30f), Vector3.zero, new Vector3(0.20f, 0.19f, 0.22f), brown, false);
+            Part(dog, PrimitiveType.Sphere, new Vector3(0f, 0.37f, 0.42f), Vector3.zero, new Vector3(0.09f, 0.08f, 0.10f), dark, false);
+            Part(dog, PrimitiveType.Cube, new Vector3(-0.07f, 0.50f, 0.27f), new Vector3(0f, 0f, 20f), new Vector3(0.05f, 0.09f, 0.04f), dark, false);
+            Part(dog, PrimitiveType.Cube, new Vector3(0.07f, 0.50f, 0.27f), new Vector3(0f, 0f, -20f), new Vector3(0.05f, 0.09f, 0.04f), dark, false);
+            Part(dog, PrimitiveType.Cube, new Vector3(0f, 0.36f, -0.28f), new Vector3(-40f, 0f, 0f), new Vector3(0.04f, 0.04f, 0.16f), brown, false);
+            for (int i = 0; i < 4; i++)
+            {
+                float x = i % 2 == 0 ? -0.07f : 0.07f;
+                float z = i < 2 ? 0.13f : -0.13f;
+                Part(dog, PrimitiveType.Cube, new Vector3(x, 0.09f, z), Vector3.zero, new Vector3(0.05f, 0.18f, 0.05f), dark, false);
+            }
+            return dog;
+        }
+
+        static void Part(Transform dog, PrimitiveType shape, Vector3 pos, Vector3 euler, Vector3 scale, Color color, bool body)
+        {
+            var go = GameObject.CreatePrimitive(shape);
+            go.name = body ? "Body" : shape.ToString();
+            go.transform.SetParent(dog, false);
+            go.transform.localPosition = pos;
+            go.transform.localEulerAngles = euler;
+            go.transform.localScale = scale;
+            Collider col = go.GetComponent<Collider>();
+            if (col != null)
+                Destroy(col);
+            Renderer rend = go.GetComponent<Renderer>();
+            if (rend != null)
+                rend.material.color = color;
         }
 
         void FinishRoof(PathNode node)
@@ -703,47 +824,91 @@ namespace PerspectivePuzzle.Level1
             StartCoroutine(EndingRoutine());
         }
 
+        public const string FinalLine = "Some things have disappeared from this home. But memories still know the way back.";
+
         IEnumerator EndingRoutine()
         {
             phase = Level1Phase.Ending;
             if (player != null)
+            {
+                player.Halt();
                 player.MovementLocked = true;
-            RoomInteractable speaker = cabinet != null ? cabinet.speaker : null;
-            Transform mount = nodePole != null ? nodePole.transform : poleAnchor;
-            if (speaker != null)
-                MountOnPole(speaker.transform, mount);
-
-            PlayStinger();
+            }
             if (presenter != null)
             {
                 presenter.showRotate = false;
-                presenter.SetCaption("Some things have disappeared from this home. But memories still know the way back.");
-                presenter.SetObjective("Return the cassette tape to where it belongs.");
+                presenter.hint = null;
+                presenter.SetCaption(null);
             }
 
+            RoomInteractable speaker = cabinet != null ? cabinet.speaker : null;
+            Transform mount = nodePole != null ? nodePole.transform : poleAnchor;
+            if (speaker != null && mount != null)
+            {
+                // Short hand-to-pole move. No reach clip exists.
+                Vector3 from = speaker.transform.position;
+                MountOnPole(speaker.transform, mount);
+                Vector3 rest = speaker.transform.localPosition;
+                speaker.transform.position = from;
+                float t = 0f;
+                Vector3 startLocal = speaker.transform.localPosition;
+                while (t < 1f)
+                {
+                    t = Mathf.Min(1f, t + Time.deltaTime / 0.55f);
+                    float e = t * t * (3f - 2f * t);
+                    speaker.transform.localPosition = Vector3.Lerp(startLocal, rest, e) + Vector3.up * Mathf.Sin(e * Mathf.PI) * 0.25f;
+                    yield return null;
+                }
+            }
+
+            ClipActor actor = player != null ? player.GetComponent<ClipActor>() : null;
+            if (actor != null)
+                actor.Carrying = false;
+
+            float clipLength = PlayStinger();
             if (rig != null)
                 rig.MoveFocus(rig.lookAt, rig.ortho * 1.35f);
-            yield return new WaitForSeconds(2.6f);
+            yield return new WaitForSeconds(Mathf.Min(1.2f, clipLength));
             if (presenter != null)
-                presenter.SetDim(1f);
+                presenter.SetCaption(FinalLine);
+            yield return new WaitForSeconds(Mathf.Max(1.6f, clipLength - 1.2f));
+
+            float dim = presenter != null ? presenter.dim : 0f;
+            while (presenter != null && dim < 1f)
+            {
+                dim = Mathf.Min(1f, dim + Time.deltaTime / 1.4f);
+                presenter.SetDim(dim);
+                yield return null;
+            }
+
+            if (presenter != null)
+                presenter.ShowEndScreen(FinalLine, "Thank you for bringing her voice home.");
         }
 
-        void PlayStinger()
+        IEnumerator PulseOnce(Transform target)
+        {
+            Vector3 baseScale = target.localScale;
+            float t = 0f;
+            while (t < 1f && target != null)
+            {
+                t = Mathf.Min(1f, t + Time.deltaTime / 0.6f);
+                target.localScale = baseScale * (1f + 0.06f * Mathf.Sin(t * Mathf.PI));
+                yield return null;
+            }
+
+            if (target != null)
+                target.localScale = baseScale;
+        }
+
+        float PlayStinger()
         {
             AudioSource source = GetComponent<AudioSource>();
             if (source == null)
                 source = gameObject.AddComponent<AudioSource>();
-            int rate = 44100;
-            int length = rate / 2;
-            AudioClip clip = AudioClip.Create("HanoiStinger", length, 1, rate, false);
-            float[] data = new float[length];
-            for (int i = 0; i < length; i++)
-            {
-                float t = i / (float)rate;
-                data[i] = Mathf.Sin(2f * Mathf.PI * 440f * t) * Mathf.Exp(-3f * t) * 0.2f;
-            }
-            clip.SetData(data, 0);
+            source.spatialBlend = 0f;
+            AudioClip clip = RadioStinger.Create();
             source.PlayOneShot(clip);
+            return clip.length;
         }
 
         float CurrentYaw()
@@ -756,111 +921,76 @@ namespace PerspectivePuzzle.Level1
             return phase == Level1Phase.Round2 || phase == Level1Phase.NeedStair || phase == Level1Phase.ToRoof;
         }
 
-        void PoseDogStair()
+        /// <summary>
+        /// The trap is live only on the way to E, while the stair yaw is not open.
+        /// </summary>
+        bool DogTrapLive(float yaw)
         {
-            if (!CacheDogStair())
-                return;
-
-            bool flip = Round2Stair() && !dogBusy && story.StairOpen(CurrentYaw());
-            Transform root = BuildingRoot();
-            dogStair.localPosition = stairBasePos;
-            dogStair.localRotation = flip ? stairBaseRot * Quaternion.Euler(0f, 0f, 180f) : stairBaseRot;
-            if (root != null)
-            {
-                Vector3 want = root.TransformPoint(stairCenterRoot);
-                Vector3 now = dogStair.TransformPoint(stairCenterLocal);
-                dogStair.position += want - now;
-            }
-
-            WalkDog(flip);
+            bool held = story.Speaker == SpeakerPhase.Held;
+            return held && Round2Stair() && story.RoofReached == 0 && !story.StairOpen(yaw);
         }
 
-        bool CacheDogStair()
-        {
-            if (stairReady)
-                return dogStair != null;
-            stairReady = true;
-            GameObject flight = GameObject.Find("Plane.002");
-            if (flight == null)
-                return false;
-            dogStair = flight.transform;
-            stairBasePos = dogStair.localPosition;
-            stairBaseRot = dogStair.localRotation;
-            MeshFilter filter = flight.GetComponent<MeshFilter>();
-            stairCenterLocal = filter != null && filter.sharedMesh != null
-                ? filter.sharedMesh.bounds.center
-                : Vector3.zero;
-            Transform root = BuildingRoot();
-            stairCenterRoot = root != null
-                ? root.InverseTransformPoint(dogStair.TransformPoint(stairCenterLocal))
-                : stairCenterLocal;
-            Vector3[] tops =
-            {
-                new Vector3(0.75f, 1.36f, -0.10f),
-                new Vector3(0.75f, 2.02f, 0.99f),
-                new Vector3(0.75f, 2.60f, 1.95f),
-                new Vector3(0.75f, 3.19f, 2.92f),
-                new Vector3(0.75f, 3.49f, 3.42f),
-                new Vector3(0.75f, 4.10f, 4.42f),
-                new Vector3(0.75f, 4.70f, 5.41f),
-                new Vector3(0.75f, 5.00f, 5.90f)
-            };
-            dogLocal = new Vector3[tops.Length];
-            for (int i = 0; i < tops.Length; i++)
-            {
-                Vector3 world = root != null ? root.TransformPoint(tops[i]) : tops[i];
-                dogLocal[i] = dogStair.InverseTransformPoint(world);
-            }
-
-            return true;
-        }
-
-        void WalkDog(bool under)
+        void WalkDog()
         {
             bool show = Round2Stair() || phase == Level1Phase.ToExit;
-            if (!show || dogLocal == null)
+            Transform root = BuildingRoot();
+            if (!show || root == null || dogBusy)
             {
-                if (dogPatrol != null)
+                if (dogPatrol != null && !dogBusy)
                     dogPatrol.gameObject.SetActive(false);
                 return;
             }
 
+            bool spawned = false;
             if (dogPatrol == null)
             {
-                var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                body.name = "DogPatrol";
-                body.transform.SetParent(dogStair, false);
-                body.transform.localScale = new Vector3(0.38f, 0.16f, 0.55f);
-                Renderer rend = body.GetComponent<Renderer>();
-                if (rend != null)
-                {
-                    rend.material.shader = Shader.Find("Unlit/Color");
-                    rend.material.color = new Color(0.45f, 0.28f, 0.16f);
-                }
+                dogPatrol = MakeDog("DogPatrol", root);
+                spawned = true;
+            }
+            dogPatrol.gameObject.SetActive(true);
 
-                Collider col = body.GetComponent<Collider>();
-                if (col != null)
-                    Destroy(col);
-                dogPatrol = body.transform;
+            Vector3 target;
+            Vector3 face;
+            bool safe = story.StairOpen(CurrentYaw()) || story.RoofReached > 0;
+            if (safe)
+            {
+                // Dog Trigger of the old route is off. The dog stays in the house, away from the stair.
+                target = DogRest;
+                face = Vector3.left;
+            }
+            else
+            {
+                // Pace CauThang2 treads 1..8.
+                dogWalk += Time.deltaTime * 1.2f;
+                const float span = 14f;
+                float loop = dogWalk % span;
+                float along = 1f + (loop <= 7f ? loop : span - loop);
+                int i0 = Mathf.Clamp(Mathf.FloorToInt(along), 1, 8);
+                int i1 = Mathf.Min(i0 + 1, 8);
+                Vector3 a = CorridorBridge.UpperTread(i0) - Vector3.up * 0.04f;
+                Vector3 b = CorridorBridge.UpperTread(i1) - Vector3.up * 0.04f;
+                target = Vector3.Lerp(a, b, along - i0);
+                face = loop <= 7f ? Vector3.back : Vector3.forward;
             }
 
-            dogPatrol.gameObject.SetActive(true);
-            dogWalk += Time.deltaTime * 0.9f;
-            float span = (dogLocal.Length - 1) * 2f;
-            float loop = dogWalk % span;
-            float along = loop <= dogLocal.Length - 1 ? loop : span - loop;
-            int i0 = Mathf.Clamp(Mathf.FloorToInt(along), 0, dogLocal.Length - 1);
-            int i1 = Mathf.Min(i0 + 1, dogLocal.Length - 1);
-            float blend = along - i0;
-            Vector3 onTread = Vector3.Lerp(dogLocal[i0], dogLocal[i1], blend);
-            dogPatrol.localPosition = under ? onTread : onTread + Vector3.up * 0.22f;
-            dogPatrol.localRotation = Quaternion.identity;
+            Vector3 now = dogPatrol.localPosition;
+            float far = Vector3.Distance(now, target);
+            if (spawned || far > 3f && safe)
+            {
+                // Out of sight behind the stair wall; do not slide through the house.
+                dogPatrol.localPosition = target;
+            }
+            else
+            {
+                dogPatrol.localPosition = far > 0.6f ? Vector3.MoveTowards(now, target, Time.deltaTime * 2.5f) : target;
+            }
+            dogPatrol.localRotation = Quaternion.LookRotation(face, Vector3.up);
         }
 
         Transform BuildingRoot()
         {
             if (nodeA == null)
-                return dogStair != null ? dogStair.root : null;
+                return rotator != null ? rotator.transform : null;
             Transform root = nodeA.transform;
             while (root.parent != null)
                 root = root.parent;
@@ -874,20 +1004,15 @@ namespace PerspectivePuzzle.Level1
             float yaw = board.CurrentYaw;
             story.Observe(yaw);
             bool held = story.Speaker == SpeakerPhase.Held;
-            bool climbing = held && (phase == Level1Phase.Round2 || phase == Level1Phase.NeedStair || phase == Level1Phase.ToRoof);
-            bool trap = climbing && !story.StairOpen(yaw);
-            PathNode tread = FindClimb("Tread2");
-            if (tread != null && nodeDog != null)
-            {
-                if (trap)
-                    tread.Link(nodeDog);
-                else
-                    tread.Unlink(nodeDog);
-            }
+            bool climbing = held && Round2Stair();
+            bool trap = DogTrapLive(yaw);
 
-            ShowNode(nodeDog, trap && !dogBusy);
             HideRoofMarks();
             UnlinkRoof();
+            PathNode hall = FindClimb("Hall");
+            if (trap && !dogBusy)
+                LinkChain(hall, FindClimb("Up1"), FindClimb("Up2"), FindClimb("Up3"), nodeDog);
+            ShowNode(nodeDog, trap && !dogBusy);
             string next = story.NextRoof;
             bool openPoint = climbing && next != null && story.RoofPointOpen(next, yaw);
             if (openPoint)
@@ -904,10 +1029,12 @@ namespace PerspectivePuzzle.Level1
                 routeShown = shown;
                 if (presenter != null)
                 {
-                    presenter.showRotate = true;
+                    presenter.showRotate = !openPoint;
                     if (openPoint)
                         presenter.hint = "Click the gold point.";
-                    else if (!trap)
+                    else if (trap && story.RoofReached == 0 && phase == Level1Phase.Round2)
+                        presenter.hint = "Take the stair up to the roof.";
+                    else
                         presenter.hint = "Drag to turn the house.";
                 }
             }
@@ -947,9 +1074,85 @@ namespace PerspectivePuzzle.Level1
             for (int i = 0; i < LowerSteps.Length; i++)
                 AddRoute(FindClimb(LowerSteps[i]));
             AddRoute(FindClimb("Stair"));
-            AddRoute(FindClimb("Landing"));
-            AddRoute(FindClimb("NearMid"));
             AddRoute(nodeB);
+        }
+
+        readonly List<Renderer> upperFloors = new();
+
+        /// <summary>
+        /// Cutaway for the Tầng 2 room: the room ceiling is the Tầng 3 slab (bottom ~7.05), so from every yaw
+        /// the TuBuffet sits under it. While the player is inside, everything wholly above 7.0 is hidden.
+        /// </summary>
+        void ShowUpperFloors(bool visible)
+        {
+            Transform root = BuildingRoot();
+            Transform house = root != null ? root.Find("House") : null;
+            if (house == null)
+                return;
+            if (!visible)
+            {
+                upperFloors.Clear();
+                float cut = root.position.y + 7.0f;
+                Renderer[] all = house.GetComponentsInChildren<Renderer>();
+                for (int i = 0; i < all.Length; i++)
+                {
+                    if (all[i].enabled && all[i].bounds.min.y >= cut)
+                    {
+                        all[i].enabled = false;
+                        upperFloors.Add(all[i]);
+                    }
+                }
+                return;
+            }
+
+            for (int i = 0; i < upperFloors.Count; i++)
+            {
+                if (upperFloors[i] != null)
+                    upperFloors[i].enabled = true;
+            }
+            upperFloors.Clear();
+        }
+
+        /// <summary>
+        /// Room click targets are invisible boxes over the real TuBuffet, table and fan of the mesh.
+        /// </summary>
+        void HideProxies()
+        {
+            Transform root = BuildingRoot();
+            if (root == null)
+                return;
+            string[] names = { "Table", "Shelf", "Cabinet" };
+            for (int i = 0; i < names.Length; i++)
+            {
+                Transform prop = root.Find(names[i]);
+                if (prop == null)
+                    continue;
+                Renderer view = prop.GetComponent<Renderer>();
+                if (view != null)
+                    view.enabled = false;
+                for (int c = 0; c < prop.childCount; c++)
+                {
+                    Transform child = prop.GetChild(c);
+                    if (child.GetComponent<RoomInteractable>() != null)
+                        continue;
+                    Renderer piece = child.GetComponent<Renderer>();
+                    if (piece != null)
+                        piece.enabled = false;
+                }
+            }
+
+            // TuBuffet is 0.74 x 1.30 x 2.10 m (x, y, z). Fit the cabinet's click box to it.
+            if (cabinet != null)
+            {
+                BoxCollider box = cabinet.GetComponent<BoxCollider>();
+                Vector3 scale = cabinet.transform.lossyScale;
+                if (box != null && Mathf.Abs(scale.x) > 0.001f && Mathf.Abs(scale.y) > 0.001f && Mathf.Abs(scale.z) > 0.001f)
+                {
+                    cabinet.transform.rotation = root.rotation;
+                    box.center = Vector3.zero;
+                    box.size = new Vector3(0.80f / scale.x, 1.30f / scale.y, 2.10f / scale.z);
+                }
+            }
         }
 
         void AddRoute(PathNode node)
@@ -990,9 +1193,18 @@ namespace PerspectivePuzzle.Level1
 
         void UnlinkRoof()
         {
-            PathNode stair = FindClimb("Stair");
-            UnlinkChain(ClimbChain(stair, UpperSteps, nodeE));
-            UnlinkChain(nodeE, nodeF, nodeI, nodeL, nodeG);
+            PathNode hall = FindClimb("Hall");
+            UnlinkChain(ClimbChain(hall, UpperSteps, nodeE));
+            if (nodeDog != null)
+            {
+                PathNode up3 = FindClimb("Up3");
+                if (up3 != null)
+                    up3.Unlink(nodeDog);
+            }
+            UnlinkChain(ClimbChain(nodeE, FSteps, nodeF));
+            UnlinkChain(nodeF, nodeI);
+            UnlinkChain(ClimbChain(nodeI, LSteps, nodeL));
+            UnlinkChain(ClimbChain(nodeL, GSteps, nodeG));
             UnlinkChain(PoleChain());
             if (nodeDoor != null)
             {
@@ -1004,17 +1216,17 @@ namespace PerspectivePuzzle.Level1
 
         void LinkRoof(string point)
         {
-            PathNode stair = FindClimb("Stair");
+            PathNode hall = FindClimb("Hall");
             if (point == "E")
-                LinkChain(ClimbChain(stair, UpperSteps, nodeE));
+                LinkChain(ClimbChain(hall, UpperSteps, nodeE));
             else if (point == "F")
-                LinkChain(nodeE, nodeF);
+                LinkChain(ClimbChain(nodeE, FSteps, nodeF));
             else if (point == "I")
                 LinkChain(nodeF, nodeI);
             else if (point == "L")
-                LinkChain(nodeI, nodeL);
+                LinkChain(ClimbChain(nodeI, LSteps, nodeL));
             else if (point == "G")
-                LinkChain(nodeL, nodeG);
+                LinkChain(ClimbChain(nodeL, GSteps, nodeG));
             else if (point == "M")
                 LinkChain(PoleChain());
         }

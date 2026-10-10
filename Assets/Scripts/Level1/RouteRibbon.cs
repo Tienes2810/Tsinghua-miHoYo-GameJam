@@ -10,6 +10,7 @@ namespace PerspectivePuzzle.Level1
         [SerializeField] float width = 0.12f;
         LineRenderer openLine;
         LineRenderer lockedLine;
+        LineRenderer roundTwoLine;
 
         void Awake()
         {
@@ -22,12 +23,26 @@ namespace PerspectivePuzzle.Level1
             this.width = width;
             openLine = Create("OpenRoute", new Color(0.86f, 0.24f, 0.18f, 0.95f), width);
             lockedLine = Create("LockedRoute", new Color(0.86f, 0.24f, 0.18f, 0.28f), width * 0.65f);
+            roundTwoLine = Create("RoundTwoRoute", new Color(0.24f, 0.52f, 0.92f, 0.95f), width);
+        }
+
+        /// <summary>
+        /// Round 2 draws only the blue leg the player may walk now. Red is cleared.
+        /// </summary>
+        public void DrawRoundTwo(IList<PathNode> nodes)
+        {
+            if (openLine == null || lockedLine == null || roundTwoLine == null)
+                Build(width);
+            openLine.positionCount = 0;
+            lockedLine.positionCount = 0;
+            DrawLine(roundTwoLine, nodes);
         }
 
         public void Draw(IList<PathNode> always, PathNode gapFrom, PathNode gapTo, bool gapOpen)
         {
-            if (openLine == null || lockedLine == null)
+            if (openLine == null || lockedLine == null || roundTwoLine == null)
                 Build(width);
+            roundTwoLine.positionCount = 0;
             DrawLine(openLine, always);
             if (gapFrom == null || gapTo == null || lockedLine == null)
             {

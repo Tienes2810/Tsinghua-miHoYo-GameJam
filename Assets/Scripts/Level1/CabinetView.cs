@@ -157,6 +157,24 @@ namespace PerspectivePuzzle.Level1
             spinT = 0f;
         }
 
+        public void SpinA() => Spin(blockA, ref turnsA);
+        public void SpinB() => Spin(blockB, ref turnsB);
+        public bool IsTapeVisible => tape != null && tape.gameObject.activeSelf;
+        public int TurnsA => turnsA;
+        public int TurnsB => turnsB;
+
+        public bool TakeTape()
+        {
+            if (tape != null && CabinetBlocks.Solved(turnsA, turnsB))
+            {
+                Close(true);
+                return true;
+            }
+            return false;
+        }
+
+        public void Cancel() => Close(false);
+
         void OnGUI()
         {
             if (!IsOpen)

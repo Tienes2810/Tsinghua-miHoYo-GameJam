@@ -24,12 +24,17 @@ namespace PerspectivePuzzle.Level1
         float orthoVelocity;
         float distanceVelocity;
 
+        public Vector3 HomeFocus { get; private set; }
+        public float HomeOrtho { get; private set; }
+
         void Awake()
         {
             pitch = DefaultPitch;
             lookTarget = lookAt;
             orthoTarget = ortho;
             distanceTarget = distance;
+            HomeFocus = lookAt;
+            HomeOrtho = ortho;
             Apply();
         }
 
@@ -41,6 +46,8 @@ namespace PerspectivePuzzle.Level1
             orthoTarget = size;
             distance = away;
             distanceTarget = away;
+            HomeFocus = focus;
+            HomeOrtho = size;
             Apply();
         }
 

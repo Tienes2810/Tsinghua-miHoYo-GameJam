@@ -16,9 +16,10 @@ namespace PerspectivePuzzle.Level1
     /// </summary>
     public sealed class StoryProgress
     {
-        // Yaw where Cube.047's lip and the balcony tongue share one screen edge.
+        // Yaw where the CauThang1 landing and the tầng 2 room floor read as one edge on screen.
         public const float CorridorYaw = 315f;
-        public const float StairYaw = 200f;
+        // Yaw where the cut face shows the whole CauThang2 flight and the dog has left it.
+        public const float StairYaw = 250f;
         public const float Tolerance = 12f;
 
         public static readonly string[] RoofPoints = { "E", "F", "I", "L", "G", "M" };
@@ -35,21 +36,24 @@ namespace PerspectivePuzzle.Level1
         /// <summary>
         /// Each roof point has its own yaw. Neighbors stay more than two tolerances apart,
         /// and none sits inside the corridor tolerance.
+        /// Measured in Play Mode at pitch 32: the point is unoccluded on screen at its yaw.
+        /// E on the CauThang2 landing (240-310), F and I on the open east strip (40-220),
+        /// L in the middle corridor (230-260), G on the west wing (170-280), M on the roof (210-60).
         /// </summary>
         public static float YawForRoof(string point)
         {
             if (point == "E")
                 return StairYaw;
             if (point == "F")
-                return 250f;
+                return 200f;
             if (point == "I")
-                return 280f;
+                return 160f;
             if (point == "L")
-                return 40f;
+                return 245f;
             if (point == "G")
-                return 80f;
+                return 190f;
             if (point == "M")
-                return 155f;
+                return 280f;
             return StairYaw;
         }
 
