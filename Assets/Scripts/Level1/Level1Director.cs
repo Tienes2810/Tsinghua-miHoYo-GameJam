@@ -87,8 +87,10 @@ namespace PerspectivePuzzle.Level1
         Coroutine captionRoutine;
 
         public Level1Phase Phase => phase;
-        public bool CapturePointer => phase == Level1Phase.Intro;
-        public bool AllowRotate => phase != Level1Phase.Intro && player != null && !player.IsMoving && !player.MovementLocked;
+        public bool PuzzleOpen { get; private set; }
+        public bool CapturePointer => phase == Level1Phase.Intro || PuzzleOpen;
+        public bool AllowRotate => !PuzzleOpen && phase != Level1Phase.Intro && phase != Level1Phase.Ending
+            && player != null && !player.IsMoving && !player.MovementLocked;
 
         public void Bind(
             PlayerMovement mover,
@@ -166,12 +168,7 @@ namespace PerspectivePuzzle.Level1
             StairSpan.Ensure(rotator != null ? rotator.transform : null);
             CacheClimb();
             if (board != null)
-            {
                 board.KeepPair(nodeB, nodeC);
-                board.ReleasePair(nodeB, nodeC);
-            }
-            if (nodeB != null && nodeC != null)
-                nodeB.Link(nodeC);
             FillOpenRoute();
             HideNode(nodeDog);
             HideNode(nodeSafe);
@@ -192,6 +189,7 @@ namespace PerspectivePuzzle.Level1
                 markerSpeaker.Show(false);
             if (cabinet != null)
                 cabinet.SetSpeakerReady(false);
+            StyleCassette();
             StartCoroutine(Intro());
         }
 
@@ -325,11 +323,29 @@ namespace PerspectivePuzzle.Level1
 
         IEnumerator OpenCabinet(RoomInteractable prop)
         {
+            if (prop != null && prop.Used)
+                yield break;
+
             player.MovementLocked = true;
-            yield return prop.PlayCabinet();
+            PuzzleOpen = true;
+            bool taken = false;
+            CabinetView view = CabinetView.Open(() => taken = true);
+            while (view != null && view.IsOpen)
+                yield return null;
+            PuzzleOpen = false;
+            if (!taken)
+            {
+                player.MovementLocked = false;
+                yield break;
+            }
+
+            if (prop != null)
+                prop.Used = true;
             if (markerSpeaker != null)
                 markerSpeaker.Show(true);
             story.Speaker = SpeakerPhase.Ready;
+            if (cabinet != null)
+                cabinet.SetSpeakerReady(true);
             if (nodeC != null && nodeSpeaker != null)
                 nodeC.Link(nodeSpeaker);
             Say("There it is.", 1.6f);
@@ -356,10 +372,11 @@ namespace PerspectivePuzzle.Level1
 
         void ApplyCorridorGate()
         {
+            bool open = nodeB != null && nodeC != null && nodeB.IsLinked(nodeC);
             if (ribbon != null)
-                ribbon.Draw(openRoute, nodeB, nodeC, true);
+                ribbon.Draw(openRoute, nodeB, nodeC, open);
             if (markerC != null)
-                markerC.Show(phase != Level1Phase.Intro && phase != Level1Phase.Ending);
+                markerC.Show(open && phase != Level1Phase.Intro && phase != Level1Phase.Ending);
         }
 
         IEnumerator Intro()
@@ -368,7 +385,7 @@ namespace PerspectivePuzzle.Level1
             if (presenter != null)
             {
                 presenter.SetDim(0.94f);
-                presenter.SetObjective("Find Grandma's loudspeaker.");
+                presenter.SetObjective("Find Grandma's cassette tape.");
                 presenter.hint = "Click to skip a line";
             }
 
@@ -376,7 +393,7 @@ namespace PerspectivePuzzle.Level1
             {
                 "This home is about to disappear.",
                 "But Grandma-a former radio broadcaster from old Hanoi-still wants to hear one thing… before it all comes to an end.",
-                "The old loudspeaker is still somewhere inside this home.",
+                "Grandma's cassette tape is still somewhere inside this home.",
                 "Find it. Take it to the loudspeaker post on the rooftop."
             };
 
@@ -385,17 +402,25 @@ namespace PerspectivePuzzle.Level1
                 if (presenter != null)
                     presenter.SetCaption(lines[i]);
                 float t = 0f;
-                while (t < 2.7f)
+                const float hold = 2.6f;
+                while (t < hold)
                 {
                     if (Input.GetMouseButtonDown(0))
                         break;
+                    float edge = 0.35f;
+                    float alpha = t < edge ? t / edge : hold - t < edge ? (hold - t) / edge : 1f;
+                    if (presenter != null)
+                        presenter.captionAlpha = alpha;
                     t += Time.deltaTime;
                     yield return null;
                 }
             }
 
             if (presenter != null)
+            {
+                presenter.captionAlpha = 1f;
                 presenter.SetCaption(null);
+            }
             float dim = presenter != null ? presenter.dim : 0f;
             while (dim > 0f)
             {
@@ -410,7 +435,7 @@ namespace PerspectivePuzzle.Level1
                 player.MovementLocked = false;
             if (presenter != null)
             {
-                presenter.SetObjective("Find Grandma's loudspeaker. Bring it back to the loudspeaker post on the rooftop.");
+                presenter.SetObjective("Find Grandma's cassette tape. Bring it to the loudspeaker post on the rooftop.");
                 presenter.hint = "Click the gold point. Drag to turn the house.";
                 presenter.showRotate = false;
             }
@@ -418,20 +443,27 @@ namespace PerspectivePuzzle.Level1
 
         IEnumerator ReachedGap()
         {
-            // Stay in ToGap until the line finishes. NeedRotate would let the corridor
-            // announcement replace this line when the building is already aligned.
             player.MovementLocked = true;
             if (presenter != null)
                 presenter.showRotate = false;
-            yield return null;
+            yield return new WaitForSeconds(1f);
 
-            if (presenter != null)
+            bool open = nodeB != null && nodeC != null && nodeB.IsLinked(nodeC);
+            if (!open)
             {
-                presenter.SetCaption(null);
-                presenter.showRotate = false;
+                phase = Level1Phase.NeedRotate;
+                if (presenter != null)
+                {
+                    presenter.SetCaption("Some paths only appear when we see this place from a different perspective.");
+                    presenter.showRotate = true;
+                    presenter.hint = "Drag left / right to turn the house.";
+                }
+            }
+            else
+            {
+                phase = Level1Phase.ToRoom;
             }
 
-            phase = Level1Phase.ToGap;
             player.MovementLocked = false;
         }
 
@@ -447,8 +479,8 @@ namespace PerspectivePuzzle.Level1
             yield return new WaitForSeconds(0.75f);
             if (presenter != null)
             {
-                presenter.SetCaption("Grandma used to have a loudspeaker. It must still be somewhere around here.");
-                presenter.SetObjective("Find Grandma's loudspeaker.");
+                presenter.SetCaption("Grandma used to have a cassette tape. It must still be somewhere around here.");
+                presenter.SetObjective("Find Grandma's cassette tape.");
             }
 
             float t = 0f;
@@ -482,6 +514,10 @@ namespace PerspectivePuzzle.Level1
             if (!story.TryPickup())
                 return;
 
+            ClipActor actor = player != null ? player.GetComponent<ClipActor>() : null;
+            if (actor != null)
+                actor.Carrying = true;
+
             phase = Level1Phase.ToExit;
             if (markerSpeaker != null)
                 markerSpeaker.Show(false);
@@ -494,7 +530,7 @@ namespace PerspectivePuzzle.Level1
             if (presenter != null)
             {
                 presenter.SetCaption("If you remember… Grandma used to keep it at the highest place in the building.");
-                presenter.SetObjective("Return the loudspeaker to where it belongs.");
+                presenter.SetObjective("Return the cassette tape to where it belongs.");
                 presenter.hint = "Click the way out of the room.";
                 presenter.showRotate = false;
             }
@@ -648,6 +684,18 @@ namespace PerspectivePuzzle.Level1
             return Mathf.Abs(scale) < 0.0001f ? value : value / scale;
         }
 
+        void StyleCassette()
+        {
+            RoomInteractable item = cabinet != null ? cabinet.speaker : null;
+            if (item == null)
+                return;
+            item.gameObject.name = "Cassette";
+            item.transform.localScale = new Vector3(0.28f, 0.05f, 0.18f);
+            Renderer rend = item.GetComponent<Renderer>();
+            if (rend != null)
+                rend.material.color = new Color(0.1f, 0.09f, 0.08f);
+        }
+
         public void PlaceOnPole()
         {
             if (phase != Level1Phase.AtPole || !story.TryPlace())
@@ -670,7 +718,7 @@ namespace PerspectivePuzzle.Level1
             {
                 presenter.showRotate = false;
                 presenter.SetCaption("Some things have disappeared from this home. But memories still know the way back.");
-                presenter.SetObjective("Return the loudspeaker to where it belongs.");
+                presenter.SetObjective("Return the cassette tape to where it belongs.");
             }
 
             if (rig != null)

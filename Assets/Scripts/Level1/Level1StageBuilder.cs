@@ -14,9 +14,10 @@ namespace PerspectivePuzzle.Level1
     public static class Level1StageBuilder
     {
         const string GameplayPrefab = "Assets/Art/Models/Building/Gameplay/House_Gameplay.prefab";
+        const string MapFbx = CharacterClips.HouseModel;
         const string MapGlb = "Assets/Art/Models/Incoming/My project/Assets/GOEMGEM.glb";
-        const string WalkModel = "Assets/Art/Characters/Walk.fbx";
-        const string FallModel = "Assets/Art/Characters/Fall.fbx";
+        const string WalkModel = CharacterClips.WalkModel;
+        const string FallModel = CharacterClips.FallModel;
         const string LevelScene = "Assets/Scenes/Level1.unity";
         const string PreviewScene = "Assets/Scenes/ModelPreview.unity";
 
@@ -113,7 +114,9 @@ namespace PerspectivePuzzle.Level1
             bob.movement = movement;
             var actor = playerGo.AddComponent<ClipActor>();
             actor.movement = movement;
+            actor.idleClip = CharacterClips.FirstClip(CharacterClips.IdleModel);
             actor.walkClip = FirstClip(WalkModel);
+            actor.carryClip = CharacterClips.FirstClip(CharacterClips.CarryModel);
             actor.fallClip = FirstClip(FallModel);
 
             var room = new GameObject("RoomFocus");
@@ -225,6 +228,12 @@ namespace PerspectivePuzzle.Level1
 
         static GameObject LoadMap(out string report)
         {
+            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(MapFbx)))
+            {
+                report = "map=" + MapFbx;
+                return AssetDatabase.LoadAssetAtPath<GameObject>(MapFbx);
+            }
+
             if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(MapGlb)))
             {
                 report = "map=" + MapGlb;

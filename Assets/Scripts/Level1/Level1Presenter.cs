@@ -7,6 +7,7 @@ namespace PerspectivePuzzle.Level1
         public string caption;
         public string objective;
         public string hint;
+        public float captionAlpha = 1f;
         public bool showRotate;
         public string performance = "";
         public float dim = 1f;
@@ -61,8 +62,15 @@ namespace PerspectivePuzzle.Level1
             {
                 float boxHeight = 150f;
                 float y = height * 0.58f;
-                Plate(new Rect(width * 0.1f, y, width * 0.8f, boxHeight));
+                float alpha = Mathf.Clamp01(captionAlpha);
+                Rect plate = new Rect(width * 0.1f, y, width * 0.8f, boxHeight);
+                Color wash = HudColors.Plate;
+                wash.a *= alpha;
+                GUI.color = wash;
+                GUI.DrawTexture(plate, Texture2D.whiteTexture);
+                GUI.color = new Color(HudColors.Ink.r, HudColors.Ink.g, HudColors.Ink.b, alpha);
                 GUI.Label(new Rect(width * 0.12f, y + 18f, width * 0.76f, boxHeight - 36f), caption, body);
+                GUI.color = Color.white;
             }
 
             if (showRotate)
