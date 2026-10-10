@@ -9,8 +9,11 @@ namespace PerspectivePuzzle.Movement
     {
         [SerializeField] PathNode currentNode;
         [SerializeField] float secondsPerUnit = 0.4f;
+        [SerializeField] bool faceTravel = true;
         [SerializeField] Animator animator;
         [SerializeField] string movingBool = "isMoving";
+
+        public bool MovementLocked;
 
         readonly List<PathNode> path = new();
         Tween moveTween;
@@ -31,6 +34,24 @@ namespace PerspectivePuzzle.Movement
                 WarpTo(currentNode);
         }
 
+        public void PlaceAt(PathNode node)
+        {
+            currentNode = node;
+            WarpTo(node);
+        }
+
+        public void SetPace(float seconds)
+        {
+            secondsPerUnit = Mathf.Max(0.01f, seconds);
+        }
+
+        public void Halt()
+        {
+            moveTween?.Kill();
+            moveTween = null;
+            SetMoving(false);
+        }
+
         public void WarpTo(PathNode node)
         {
             moveTween?.Kill();
@@ -42,7 +63,7 @@ namespace PerspectivePuzzle.Movement
 
         public bool TryMoveTo(PathNode destination)
         {
-            if (IsMoving || destination == null || currentNode == null)
+            if (MovementLocked || IsMoving || destination == null || currentNode == null)
                 return false;
             if (!NodePath.TryFind(currentNode, destination, path))
                 return false;
@@ -61,6 +82,8 @@ namespace PerspectivePuzzle.Movement
                     ? path[i - 1].transform.position
                     : LocalPoint(path[i - 1]), target);
                 float duration = Mathf.Max(0.08f, distance * secondsPerUnit);
+                if (faceTravel)
+                    sequence.Append(FaceLocal(path[i - 1].transform.position, node.transform.position));
                 sequence.Append(transform.DOLocalMove(target, duration).SetEase(Ease.InOutSine));
                 sequence.AppendCallback(() => currentNode = node);
             }
@@ -76,6 +99,20 @@ namespace PerspectivePuzzle.Movement
             return true;
         }
 
+        Tween FaceLocal(Vector3 worldFrom, Vector3 worldTo)
+        {
+            Vector3 flat = worldTo - worldFrom;
+            flat.y = 0f;
+            if (flat.sqrMagnitude < 0.0004f)
+                return DOTween.Sequence().SetLink(gameObject);
+
+            Quaternion worldLook = Quaternion.LookRotation(flat, Vector3.up);
+            Quaternion localLook = transform.parent == null
+                ? worldLook
+                : Quaternion.Inverse(transform.parent.rotation) * worldLook;
+            return transform.DOLocalRotateQuaternion(localLook, 0.16f).SetEase(Ease.OutSine);
+        }
+
         Vector3 LocalPoint(PathNode node)
         {
             if (transform.parent == null)
@@ -85,8 +122,9 @@ namespace PerspectivePuzzle.Movement
 
         void SetMoving(bool moving)
         {
-            if (animator != null && !string.IsNullOrEmpty(movingBool))
-                animator.SetBool(movingBool, moving);
+            if (animator == null || animator.runtimeAnimatorController == null || string.IsNullOrEmpty(movingBool))
+                return;
+            animator.SetBool(movingBool, moving);
         }
     }
 }
