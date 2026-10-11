@@ -81,6 +81,10 @@ namespace PerspectivePuzzle.Level1
         string routeShown = "";
         Transform dogPatrol;
         float dogWalk;
+        // Wooden plank over the Tang3 stairwell crack between LipE and LipW.
+        Transform crackPlank;
+        float plankOpen;
+        bool gLinked;
 
         public string performanceBase;
         public readonly StoryProgress story = new StoryProgress();
@@ -246,6 +250,7 @@ namespace PerspectivePuzzle.Level1
 
             ObserveYaw();
             WalkDog();
+            TickPlank();
 
             bool waiting = phase == Level1Phase.NeedRotate || phase == Level1Phase.InRoom
                 || phase == Level1Phase.NeedStair || phase == Level1Phase.Round2 || phase == Level1Phase.ToRoof;
@@ -1218,6 +1223,7 @@ namespace PerspectivePuzzle.Level1
             UnlinkChain(nodeF, nodeI);
             UnlinkChain(ClimbChain(nodeI, LSteps, nodeL));
             UnlinkChain(ClimbChain(nodeL, GSteps, nodeG));
+            gLinked = false;
             UnlinkChain(PoleChain());
             if (nodeDoor != null)
             {
@@ -1239,9 +1245,82 @@ namespace PerspectivePuzzle.Level1
             else if (point == "L")
                 LinkChain(ClimbChain(nodeI, LSteps, nodeL));
             else if (point == "G")
+            {
                 LinkChain(ClimbChain(nodeL, GSteps, nodeG));
+                gLinked = true;
+            }
             else if (point == "M")
                 LinkChain(PoleChain());
+        }
+
+        // LipE / LipW sit on either side of a 1.5 m stairwell crack on Tang3 (see CorridorBridge.SeatGuide).
+        static readonly Vector3 PlankFrom = new Vector3(-0.10f, 8.05f, -3.04f);
+        static readonly Vector3 PlankTo = new Vector3(-2.30f, 8.05f, -2.46f);
+
+        /// <summary>
+        /// A wooden plank slides out over the crack when the route to G opens, and stays once G is reached.
+        /// Without it the LipE-LipW step walks over empty air.
+        /// </summary>
+        void TickPlank()
+        {
+            bool want = story.RoofReached >= 5 || (story.RoofReached == 4 && gLinked);
+            if (crackPlank == null)
+            {
+                if (!want)
+                    return;
+                crackPlank = BuildPlank(BuildingRoot());
+                if (crackPlank == null)
+                    return;
+            }
+
+            float before = plankOpen;
+            plankOpen = Mathf.MoveTowards(plankOpen, want ? 1f : 0f, Time.deltaTime / 0.45f);
+            if (before < 0.01f && plankOpen >= 0.01f && GameAudio.Instance != null)
+                GameAudio.Instance.PlayAlign();
+            float e = plankOpen * plankOpen * (3f - 2f * plankOpen);
+            crackPlank.gameObject.SetActive(plankOpen > 0.001f);
+            crackPlank.localScale = new Vector3(1f, 1f, Mathf.Max(0.001f, e));
+        }
+
+        static Transform BuildPlank(Transform root)
+        {
+            if (root == null)
+                return null;
+            Vector3 span = PlankTo - PlankFrom;
+            span.y = 0f;
+            float length = span.magnitude;
+
+            // Pivot at the LipE end, so the plank grows from the side the player arrives on.
+            var pivot = new GameObject("CrackPlank").transform;
+            pivot.SetParent(root, false);
+            pivot.localPosition = PlankFrom;
+            pivot.localRotation = Quaternion.LookRotation(span.normalized, Vector3.up);
+
+            var wood = new Color(0.52f, 0.34f, 0.19f);
+            var dark = new Color(0.33f, 0.21f, 0.12f);
+            PlankPart(pivot, new Vector3(0f, 0.015f, length * 0.5f), new Vector3(0.62f, 0.05f, length), wood);
+            // Two battens underneath and a seam line on top read as boards nailed together.
+            PlankPart(pivot, new Vector3(0f, -0.03f, length * 0.22f), new Vector3(0.66f, 0.04f, 0.08f), dark);
+            PlankPart(pivot, new Vector3(0f, -0.03f, length * 0.78f), new Vector3(0.66f, 0.04f, 0.08f), dark);
+            PlankPart(pivot, new Vector3(0f, 0.042f, length * 0.5f), new Vector3(0.015f, 0.006f, length * 0.98f), dark);
+            pivot.localScale = new Vector3(1f, 1f, 0.001f);
+            pivot.gameObject.SetActive(false);
+            return pivot;
+        }
+
+        static void PlankPart(Transform parent, Vector3 pos, Vector3 scale, Color color)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = "Board";
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localScale = scale;
+            Collider col = go.GetComponent<Collider>();
+            if (col != null)
+                Destroy(col);
+            Renderer rend = go.GetComponent<Renderer>();
+            if (rend != null)
+                rend.material.color = color;
         }
 
         PathNode[] PoleChain()
