@@ -16,6 +16,7 @@
 - Đợt này, Chương 2 được **viết lại hoàn toàn** (mã mới trong `Assets/Scripts/Level2/`).
 - Toàn bộ input của game (Chương 1 và 2) giờ đi qua một lớp duy nhất là `GameInput`.
 - Việc kiểm thử dùng **bộ chơi thử tự động** (`Level1Playtest`, `Level2Playtest`). Bộ này bơm click, kéo và phím vào toạ độ pixel trên màn hình, đi đúng đường của chuột thật: pixel → tia ray → collider → logic game.
+- **Chuẩn hoá Song ngữ (Bilingual) toàn diện:** Đồng bộ toàn bộ cốt truyện, lời thoại dẫn dắt của bà, mục tiêu nhiệm vụ (Objective), câu đố tủ chè, chỉ dẫn điều khiển (Hint), thông báo tương tác (Toast) và màn hình kết thúc sang dạng **Tiếng Việt dòng chính + Tiếng Anh phụ đề bên dưới**, sẵn sàng cho ban giám khảo quốc tế của cuộc thi Tsinghua x miHoYo dễ dàng thẩm định.
 
 ---
 

@@ -257,7 +257,7 @@ namespace PerspectivePuzzle.Level1
             if ((phase == Level1Phase.NeedRotate || phase == Level1Phase.NeedStair || phase == Level1Phase.Round2
                     || phase == Level1Phase.ToRoof)
                 && idle > 12f && presenter != null)
-                presenter.hint = "Perhaps the path isn't ahead.";
+                presenter.hint = "Có lẽ lối đi không nằm ở phía trước... Hãy thử xoay nhà · Perhaps the path isn't ahead";
 
             WatchDog();
             FollowRoom();
@@ -265,7 +265,7 @@ namespace PerspectivePuzzle.Level1
             if (phase == Level1Phase.InRoom && idle > 35f && !roomHinted && cabinet != null && !cabinet.Used)
             {
                 roomHinted = true;
-                Say("The cupboard still keeps a few of her things.", 3.2f);
+                Say("Chiếc tủ nhỏ vẫn còn cất giữ vài món đồ của bà...\nThe cupboard still keeps a few of her things.", 4f);
                 if (cabinet.transform != null)
                     StartCoroutine(PulseOnce(cabinet.transform));
             }
@@ -461,16 +461,16 @@ namespace PerspectivePuzzle.Level1
             if (presenter != null)
             {
                 presenter.SetDim(0.94f);
-                presenter.SetObjective("Find Grandma's cassette tape.");
-                presenter.hint = "Click to skip a line";
+                presenter.SetObjective("Tìm cuộn băng cassette của Bà\nFind Grandma's cassette tape");
+                presenter.hint = "Click chuột để bỏ qua · Click to skip";
             }
 
             string[] lines =
             {
-                "This home is about to disappear.",
-                "But Grandma-a former radio broadcaster from old Hanoi-still wants to hear one thing… before it all comes to an end.",
-                "Grandma's cassette tape is still somewhere inside this home.",
-                "Find it. Take it to the loudspeaker post on the rooftop."
+                "Ngôi nhà này sắp sửa biến mất vào quá khứ...\nThis home is about to disappear.",
+                "Nhưng bà — cựu phát thanh viên Hà Nội xưa — vẫn muốn nghe lại một thanh âm quen thuộc.\nGrandma, a former radio broadcaster from old Hanoi, still longs to hear one familiar voice.",
+                "Cuộn băng cassette của bà vẫn còn đâu đó trong căn nhà này.\nGrandma's cassette tape is still somewhere inside this home.",
+                "Hãy tìm cuộn băng và mang lên cột loa trên tầng mái.\nFind it. Take it to the loudspeaker post on the rooftop."
             };
 
             for (int i = 0; i < lines.Length; i++)
@@ -511,8 +511,8 @@ namespace PerspectivePuzzle.Level1
                 player.MovementLocked = false;
             if (presenter != null)
             {
-                presenter.SetObjective("Find Grandma's cassette tape. Bring it to the loudspeaker post on the rooftop.");
-                presenter.hint = "Drag to turn the house, then click the gold point.";
+                presenter.SetObjective("Tìm cuộn băng cassette của Bà và mang lên cột loa trên mái\nFind Grandma's cassette tape and bring it to the rooftop loudspeaker");
+                presenter.hint = "Kéo để xoay nhà, click điểm vàng để đi · Drag to turn, click to walk";
                 presenter.showRotate = false;
             }
         }
@@ -528,11 +528,11 @@ namespace PerspectivePuzzle.Level1
             if (!open)
             {
                 phase = Level1Phase.NeedRotate;
-                Say("Some paths only appear when we see this place from a different perspective.", 4.5f);
+                Say("Có những con đường chỉ mở ra khi ta đổi góc nhìn.\nSome paths only appear when we see this place from a different perspective.", 4.5f);
                 if (presenter != null)
                 {
                     presenter.showRotate = true;
-                    presenter.hint = "Drag left / right to turn the house.";
+                    presenter.hint = "Kéo ngang để xoay nhà · Drag left / right to turn the house";
                 }
             }
             else
@@ -561,8 +561,8 @@ namespace PerspectivePuzzle.Level1
             yield return new WaitForSeconds(0.75f);
             if (presenter != null)
             {
-                presenter.SetCaption("Grandma used to have a cassette tape. It must still be somewhere around here.");
-                presenter.SetObjective("Find Grandma's cassette tape.");
+                presenter.SetCaption("Bà từng có một cuộn băng cassette. Chắc vẫn còn quanh quẩn đâu đây...\nGrandma used to have a cassette tape. It must still be somewhere around here.");
+                presenter.SetObjective("Tìm cuộn băng cassette trong phòng\nFind Grandma's cassette tape in the room");
             }
 
             float t = 0f;
@@ -577,7 +577,7 @@ namespace PerspectivePuzzle.Level1
             if (presenter != null)
             {
                 presenter.SetCaption(null);
-                presenter.hint = "Tap things in the room.";
+                presenter.hint = "Khám phá các đồ vật trong phòng · Tap things in the room";
             }
             player.MovementLocked = false;
             idle = 0f;
@@ -643,9 +643,9 @@ namespace PerspectivePuzzle.Level1
             HideNode(nodeDog);
             if (presenter != null)
             {
-                presenter.SetCaption("If you remember… Grandma used to keep it at the highest place in the building.");
-                presenter.SetObjective("Return the cassette tape to where it belongs.");
-                presenter.hint = "Click the way out of the room.";
+                presenter.SetCaption("Nếu bạn còn nhớ... bà thường cất nó ở nơi cao nhất của toà nhà.\nIf you remember… Grandma used to keep it at the highest place in the building.");
+                presenter.SetObjective("Đưa cuộn băng về đúng vị trí trên tầng mái\nReturn the cassette tape to the rooftop loudspeaker");
+                presenter.hint = "Bước ra khỏi phòng · Click the way out of the room";
                 presenter.showRotate = false;
             }
         }
@@ -661,7 +661,7 @@ namespace PerspectivePuzzle.Level1
             if (presenter != null)
             {
                 presenter.SetCaption(null);
-                presenter.hint = "Take the stair up to the roof.";
+                presenter.hint = "Lên cầu thang hướng về sân thượng · Take the stair up to the roof";
                 presenter.showRotate = false;
             }
         }
@@ -688,10 +688,10 @@ namespace PerspectivePuzzle.Level1
             yield return new WaitForSeconds(1.4f);
             if (player != null && nodeA != null)
                 player.PlaceAt(nodeA);
-            Say("Có lẽ con đường vừa rồi không dành cho chúng ta.", 3.5f);
+            Say("Có lẽ con đường vừa rồi không dành cho chúng ta...\nPerhaps that path wasn't meant for us.", 3.5f);
             if (presenter != null)
             {
-                presenter.hint = "Perhaps the path isn't ahead.";
+                presenter.hint = "Xoay nhà để tìm lối đi an toàn tránh chó · Rotate to find a safe path";
                 presenter.showRotate = true;
             }
             yield return new WaitForSeconds(1.6f);
@@ -849,7 +849,7 @@ namespace PerspectivePuzzle.Level1
             StartCoroutine(EndingRoutine());
         }
 
-        public const string FinalLine = "Some things have disappeared from this home. But memories still know the way back.";
+        public const string FinalLine = "Có những điều đã rời xa ngôi nhà này. Nhưng ký ức luôn biết lối trở về.\nSome things have disappeared from this home. But memories still know the way back.";
 
         IEnumerator EndingRoutine()
         {
@@ -907,7 +907,7 @@ namespace PerspectivePuzzle.Level1
             }
 
             if (presenter != null)
-                presenter.ShowEndScreen(FinalLine, "Thank you for bringing her voice home.");
+                presenter.ShowEndScreen(FinalLine, "Cảm ơn bạn đã mang tiếng nói của bà trở về  ·  Thank you for bringing her voice home.");
         }
 
         IEnumerator PulseOnce(Transform target)
@@ -1056,11 +1056,11 @@ namespace PerspectivePuzzle.Level1
                 {
                     presenter.showRotate = !openPoint;
                     if (openPoint)
-                        presenter.hint = "Click the gold point.";
+                        presenter.hint = "Click điểm vàng để bước tiếp · Click the gold point to advance";
                     else if (trap && story.RoofReached == 0 && phase == Level1Phase.Round2)
-                        presenter.hint = "Take the stair up to the roof.";
+                        presenter.hint = "Lên cầu thang hướng về sân thượng · Take the stair up to the roof";
                     else
-                        presenter.hint = "Drag to turn the house.";
+                        presenter.hint = "Kéo để xoay nhà · Drag to turn the house";
                 }
             }
         }

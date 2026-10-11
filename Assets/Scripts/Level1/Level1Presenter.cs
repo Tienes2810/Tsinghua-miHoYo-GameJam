@@ -69,17 +69,17 @@ namespace PerspectivePuzzle.Level1
             Color ink = new Color(0.93f, 0.9f, 0.82f, a);
             GUI.color = ink;
             body.normal.textColor = ink;
-            GUI.Label(new Rect(width * 0.12f, height * 0.36f, width * 0.76f, 140f), endTitle, body);
+            GUI.Label(new Rect(width * 0.12f, height * 0.30f, width * 0.76f, 160f), endTitle, body);
             float b = Mathf.Clamp01((Time.unscaledTime - endShownAt - 1.2f) / 1.2f);
             Color soft = new Color(0.93f, 0.78f, 0.45f, b);
             prompt.normal.textColor = soft;
             GUI.color = soft;
-            GUI.Label(new Rect(width * 0.12f, height * 0.36f + 150f, width * 0.76f, 40f), endLine, prompt);
+            GUI.Label(new Rect(width * 0.12f, height * 0.30f + 168f, width * 0.76f, 50f), endLine, prompt);
             if (b >= 0.8f)
             {
-                float btnW = 440f;
-                float btnH = 54f;
-                Rect btnRect = new Rect((width - btnW) * 0.5f, height * 0.36f + 210f, btnW, btnH);
+                float btnW = 520f;
+                float btnH = 56f;
+                Rect btnRect = new Rect((width - btnW) * 0.5f, height * 0.30f + 236f, btnW, btnH);
                 Plate(btnRect);
                 Color btnInk = new Color(0.96f, 0.82f, 0.35f, 1f);
                 prompt.normal.textColor = btnInk;
@@ -92,7 +92,7 @@ namespace PerspectivePuzzle.Level1
                 small.normal.textColor = faint;
                 small.alignment = TextAnchor.MiddleCenter;
                 GUI.color = faint;
-                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Level 1 complete  -  Enter: Chapter 2  -  Esc to quit", small);
+                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Hoàn thành Chương 1  ·  Enter: Chương 2  ·  Esc: Thoát / Quit", small);
                 small.alignment = TextAnchor.MiddleLeft;
             }
             GUI.color = Color.white;
@@ -124,20 +124,22 @@ namespace PerspectivePuzzle.Level1
 
             if (!string.IsNullOrEmpty(objective))
             {
-                Plate(new Rect(28f, 24f, 820f, 86f));
-                GUI.Label(new Rect(44f, 32f, 788f, 24f), "OBJECTIVE", small);
-                GUI.Label(new Rect(44f, 54f, 788f, 46f), objective, title);
+                float textH = title.CalcHeight(new GUIContent(objective), 788f);
+                float plateH = Mathf.Max(86f, textH + 42f);
+                Plate(new Rect(28f, 24f, 820f, plateH));
+                GUI.Label(new Rect(44f, 30f, 788f, 22f), "MỤC TIÊU  ·  OBJECTIVE", small);
+                GUI.Label(new Rect(44f, 52f, 788f, textH + 8f), objective, title);
             }
 
             if (!string.IsNullOrEmpty(caption))
             {
                 float alpha = Mathf.Clamp01(captionAlpha);
                 bool intro = dim > 0.5f;
-                float plateWidth = intro ? width * 0.8f : Mathf.Min(width * 0.7f, 1100f);
+                float plateWidth = intro ? width * 0.82f : Mathf.Min(width * 0.74f, 1120f);
                 float textWidth = plateWidth - 48f;
-                float boxHeight = intro ? 150f : Mathf.Max(56f, body.CalcHeight(new GUIContent(caption), textWidth) + 24f);
+                float boxHeight = intro ? Mathf.Max(160f, body.CalcHeight(new GUIContent(caption), textWidth) + 36f) : Mathf.Max(64f, body.CalcHeight(new GUIContent(caption), textWidth) + 26f);
                 float bottom = showRotate ? height - 160f : height - 76f;
-                float y = intro ? height * 0.58f : bottom - boxHeight;
+                float y = intro ? height * 0.56f : bottom - boxHeight;
                 float x = (width - plateWidth) * 0.5f;
                 Rect plate = new Rect(x, y, plateWidth, boxHeight);
                 Color wash = HudColors.Plate;
@@ -145,14 +147,14 @@ namespace PerspectivePuzzle.Level1
                 GUI.color = wash;
                 GUI.DrawTexture(plate, Texture2D.whiteTexture);
                 GUI.color = new Color(HudColors.Ink.r, HudColors.Ink.g, HudColors.Ink.b, alpha);
-                GUI.Label(new Rect(x + 24f, y + 12f, textWidth, boxHeight - 24f), caption, body);
+                GUI.Label(new Rect(x + 24f, y + 14f, textWidth, boxHeight - 28f), caption, body);
                 GUI.color = Color.white;
             }
 
             if (showRotate)
             {
-                const string rotateText = "Drag left / right to turn the house";
-                float boxWidth = Mathf.Min(760f, width - 48f);
+                const string rotateText = "Kéo ngang để xoay nhà  ·  Drag to turn the house";
+                float boxWidth = Mathf.Min(780f, width - 48f);
                 float boxHeight = 64f;
                 float x = (width - boxWidth) * 0.5f;
                 float y = height - 148f;
@@ -162,8 +164,9 @@ namespace PerspectivePuzzle.Level1
 
             if (!string.IsNullOrEmpty(hint))
             {
-                Plate(new Rect(24f, height - 58f, Mathf.Min(640f, width * 0.48f), 40f));
-                GUI.Label(new Rect(36f, height - 54f, Mathf.Min(616f, width * 0.46f), 32f), hint, small);
+                float hintW = Mathf.Min(820f, width * 0.62f);
+                Plate(new Rect(24f, height - 58f, hintW, 40f));
+                GUI.Label(new Rect(36f, height - 54f, hintW - 24f, 32f), hint, small);
             }
 
             if (!string.IsNullOrEmpty(performance))
@@ -172,9 +175,9 @@ namespace PerspectivePuzzle.Level1
                 GUI.Label(new Rect(width - 548f, 20f, 506f, 28f), performance, small);
             }
 
-            Rect chapRect = new Rect(width - 240f, 56f, 216f, 30f);
+            Rect chapRect = new Rect(width - 274f, 56f, 250f, 34f);
             Plate(chapRect);
-            if (GUI.Button(chapRect, "Chương 2: Hoàng Hôn  →", small))
+            if (GUI.Button(chapRect, "Chương 2 / Chapter 2  →", small))
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
             }

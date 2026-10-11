@@ -149,11 +149,11 @@ namespace PerspectivePuzzle.Level2
             titleStyle.alignment = TextAnchor.MiddleCenter;
             GUI.Label(new Rect(0, h * 0.63f + 86, w, 34), "Hanoi at Dusk", titleStyle);
             Paint(bodyStyle, new Color(Ink.r, Ink.g, Ink.b, a * 0.85f));
-            GUI.Label(new Rect(w * 0.18f, h * 0.63f + 124, w * 0.64f, 70),
-                "Ride the red lift, turn the red bridge, and spin the old quarter until the impossible path appears.", bodyStyle);
+            GUI.Label(new Rect(w * 0.15f, h * 0.63f + 124, w * 0.70f, 70),
+                "Thang máy đỏ, nhịp cầu xoay, và góc nhìn ảo ảnh đưa lối về phố cổ.\nRide the red lift, turn the bridge, and find the impossible path through the old quarter.", bodyStyle);
             float blink = 0.55f + 0.45f * Mathf.Sin(Time.time * 3f);
             Paint(titleStyle, new Color(GoldInk.r, GoldInk.g, GoldInk.b, a * blink));
-            GUI.Label(new Rect(0, h - 70, w, 36), "Click anywhere to begin", titleStyle);
+            GUI.Label(new Rect(0, h - 70, w, 36), "Nhấn bất kỳ để bắt đầu  ·  Click anywhere to begin", titleStyle);
             titleStyle.alignment = TextAnchor.MiddleLeft;
             smallStyle.alignment = TextAnchor.MiddleLeft;
             DrawTopButtons(g, w, false);
@@ -164,23 +164,23 @@ namespace PerspectivePuzzle.Level2
             // objective plate
             if (!string.IsNullOrEmpty(g.Objective))
             {
-                float pw = Mathf.Min(720f, w * 0.55f);
-                float ph = Mathf.Max(70f, titleStyle.CalcHeight(new GUIContent(g.Objective), pw - 32f) + 36f);
+                float pw = Mathf.Min(780f, w * 0.60f);
+                float ph = Mathf.Max(76f, titleStyle.CalcHeight(new GUIContent(g.Objective), pw - 32f) + 38f);
                 Fill(new Rect(24, 22, pw, ph), Plate);
                 Fill(new Rect(24, 22, 4, ph), GoldInk);
                 Paint(smallStyle, GoldInk);
-                GUI.Label(new Rect(42, 26, pw - 30, 22), "CHƯƠNG 2 · HÀ NỘI HOÀNG HÔN", smallStyle);
+                GUI.Label(new Rect(42, 26, pw - 30, 22), "CHƯƠNG 2 · HÀ NỘI HOÀNG HÔN / CHAPTER 2", smallStyle);
                 Paint(titleStyle, Ink);
                 GUI.Label(new Rect(42, 46, pw - 32, ph - 30), g.Objective, titleStyle);
             }
 
             // lantern pips
             {
-                float px = w - 294f;
-                Rect plate = new(px, 22, 270, 52);
+                float px = w - 304f;
+                Rect plate = new(px, 22, 280, 52);
                 Fill(plate, Plate);
                 Paint(smallStyle, Ink);
-                GUI.Label(new Rect(px + 14, 22, 100, 52), "Lanterns", smallStyle);
+                GUI.Label(new Rect(px + 14, 22, 110, 52), "Đèn lồng · Lanterns", smallStyle);
                 for (int i = 0; i < 3; i++)
                 {
                     bool lit = i < g.LanternsLit;
@@ -230,8 +230,8 @@ namespace PerspectivePuzzle.Level2
             if (g.State == Level2Game.Phase.Play)
             {
                 string controls = g.HintActive
-                    ? "HINT  ·  follow the glowing diamond  ·  red parts can be dragged or clicked"
-                    : "Click a tile to walk   ·   Drag / click the red lift & bridge   ·   Drag empty sky or Q / E to turn the city   ·   R restart";
+                    ? "GỢI Ý: Theo dấu kim cương sáng · Phần đỏ có thể kéo/click | HINT: Follow the glowing diamond"
+                    : "Click ô để đi  ·  Kéo/click thang máy & cầu  ·  Kéo trời hoặc Q/E xoay phố  ·  R: Chơi lại (Restart)";
                 float cw = Mathf.Min(1180f, w - 48f);
                 Rect r = new((w - cw) * 0.5f, h - 58f, cw, 38f);
                 Fill(r, g.HintActive ? new Color(0.55f, 0.36f, 0.1f, 0.92f) : new Color(Plate.r, Plate.g, Plate.b, 0.8f));
@@ -258,17 +258,17 @@ namespace PerspectivePuzzle.Level2
             Fill(new Rect(0, 0, w, h), new Color(0.03f, 0.03f, 0.08f, 0.5f * a));
             Paint(smallStyle, new Color(GoldInk.r, GoldInk.g, GoldInk.b, a));
             smallStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(0, h * 0.26f, w, 30), "CHƯƠNG 2 HOÀN THÀNH  ·  CHAPTER 2 COMPLETE", smallStyle);
+            GUI.Label(new Rect(0, h * 0.25f, w, 30), "CHƯƠNG 2 HOÀN THÀNH  ·  CHAPTER 2 COMPLETE", smallStyle);
             Paint(bigStyle, new Color(Ink.r, Ink.g, Ink.b, a));
-            GUI.Label(new Rect(0, h * 0.29f, w, 90), "Hà Nội lên đèn", bigStyle);
+            GUI.Label(new Rect(0, h * 0.28f, w, 90), "Hà Nội lên đèn", bigStyle);
             Paint(bodyStyle, new Color(Ink.r, Ink.g, Ink.b, a * 0.9f));
-            GUI.Label(new Rect(w * 0.15f, h * 0.29f + 96, w * 0.7f, 80),
-                "Three lanterns lit, one bell rung. The old quarter remembers the way home.", bodyStyle);
+            GUI.Label(new Rect(w * 0.12f, h * 0.28f + 96, w * 0.76f, 80),
+                "Ba ngọn đèn đã thắp, chuông đã ngân. Phố cổ nhớ lối trở về.\nThree lanterns lit, one bell rung. The old quarter remembers the way home.", bodyStyle);
             float elapsed = Mathf.Max(0f, g.EndAt - g.StartedAt);
             int mins = Mathf.FloorToInt(elapsed / 60f);
             int secs = Mathf.FloorToInt(elapsed % 60f);
             Paint(smallStyle, new Color(Ink.r, Ink.g, Ink.b, a * 0.75f));
-            GUI.Label(new Rect(0, h * 0.29f + 176, w, 28), $"Time {mins}:{secs:00}   ·   Walks {g.Moves}", smallStyle);
+            GUI.Label(new Rect(0, h * 0.28f + 176, w, 28), $"Thời gian / Time: {mins}:{secs:00}   ·   Số bước / Steps: {g.Moves}", smallStyle);
             smallStyle.alignment = TextAnchor.MiddleLeft;
 
             if (t > 1.2f)

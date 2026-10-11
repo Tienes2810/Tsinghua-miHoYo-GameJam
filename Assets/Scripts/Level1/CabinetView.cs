@@ -223,9 +223,9 @@ namespace PerspectivePuzzle.Level1
         {
             if (!IsOpen)
                 return;
-            const string line = "Click a block to turn it 90°. Open both doors toward each other to reach what is inside. Right click / Esc to step back.";
-            float width = Mathf.Min(920f, Screen.width - 40f);
-            Rect rect = new Rect((Screen.width - width) * 0.5f, Screen.height - 90f, width, 56f);
+            const string line = "Click vào khối để xoay 90°. Mở hai cánh cửa hướng vào nhau để lấy cuộn băng bên trong.\nClick a block to rotate 90°. Open both doors toward each other. (Chuột phải / Esc để quay lại)";
+            float width = Mathf.Min(960f, Screen.width - 40f);
+            Rect rect = new Rect((Screen.width - width) * 0.5f, Screen.height - 96f, width, 64f);
             GUI.color = new Color(0.93f, 0.9f, 0.82f, 0.94f);
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
             GUI.color = new Color(0.12f, 0.08f, 0.05f, 1f);

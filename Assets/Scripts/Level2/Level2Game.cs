@@ -290,7 +290,7 @@ namespace PerspectivePuzzle.Level2
                 if (player.IsMoving || liftTween != null || worldTween != null)
                 {
                     drag = Drag.Blocked;
-                    ShowToast(player.IsMoving ? "Wait until the walk is finished." : "Wait a moment...");
+                    ShowToast(player.IsMoving ? "Đợi nhân vật đi xong · Wait until walk is finished" : "Xin chờ một chút · Wait a moment...");
                     return;
                 }
 
@@ -316,7 +316,7 @@ namespace PerspectivePuzzle.Level2
                 if (PlayerOnBridge())
                 {
                     drag = Drag.Blocked;
-                    ShowToast("Step off the bridge before turning it.");
+                    ShowToast("Bước ra khỏi cầu trước khi xoay · Step off bridge before turning");
                     GameAudio.Instance?.PlayClick(0.6f);
                     return;
                 }
@@ -333,7 +333,7 @@ namespace PerspectivePuzzle.Level2
             if (player.IsMoving || worldTween != null || liftTween != null || bridgeTween != null)
             {
                 drag = Drag.Blocked;
-                ShowToast("Wait until the walk is finished.");
+                ShowToast("Đợi nhân vật đi xong · Wait until walk is finished");
                 return;
             }
 
@@ -426,7 +426,7 @@ namespace PerspectivePuzzle.Level2
                 }
                 if (PlayerOnBridge())
                 {
-                    ShowToast("Step off the bridge before turning it.");
+                    ShowToast("Bước ra khỏi cầu trước khi xoay · Step off bridge before turning");
                     return;
                 }
                 UnlinkBridge();
@@ -461,7 +461,7 @@ namespace PerspectivePuzzle.Level2
             {
                 ClickRipple.Spawn(target.transform.position, new Color(1f, 0.35f, 0.3f, 0.9f), 0.4f, 0.4f);
                 GameAudio.Instance?.PlayClick(0.55f);
-                ShowToast("No path there yet - change the city first.");
+                ShowToast("Chưa có đường tới đây: hãy xoay đổi góc nhìn · No path yet - change the view");
             }
 
             return ok;
@@ -550,7 +550,7 @@ namespace PerspectivePuzzle.Level2
         {
             if (player.IsMoving || worldTween != null || liftTween != null || bridgeTween != null)
             {
-                ShowToast("Wait until the walk is finished.");
+                ShowToast("Đợi nhân vật đi xong · Wait until walk is finished");
                 return;
             }
             lastActionAt = Time.time;
@@ -666,7 +666,7 @@ namespace PerspectivePuzzle.Level2
                     worldTween = null;
                     RelinkSeam();
                 });
-            ShowCaption("Every Mid-Autumn, Grandma lit three lanterns so the family could find its way home. Light them again.", 6.5f);
+            ShowCaption("Mỗi mùa Trung Thu, Bà luôn thắp ba ngọn đèn để con cháu tìm được lối về. Hãy thắp sáng lại những ngọn đèn ấy.\nEvery Mid-Autumn, Grandma lit three lanterns so the family could find its way home. Light them again.", 7.5f);
         }
 
         void TrackPlayer()
@@ -697,9 +697,9 @@ namespace PerspectivePuzzle.Level2
                 return;
 
             if (now == u2)
-                LightLantern(0, "The first lantern - for the rooftops where we flew kites until the streetlights came on.");
+                LightLantern(0, "Ngọn đèn thứ nhất — soi bóng những mái ngói nơi ta từng thả diều tới khi phố lên đèn.\nThe first lantern — for the rooftops where we flew kites until dusk.");
             else if (now == c2)
-                LightLantern(1, "The second - for the red bridge she crossed every morning on the way to the market.");
+                LightLantern(1, "Ngọn đèn thứ hai — soi nhịp cầu son bà qua mỗi sớm đi chợ về.\nThe second — for the crimson bridge she crossed each morning.");
             else if (now == t1)
                 StartCoroutine(Ending());
         }
@@ -723,7 +723,7 @@ namespace PerspectivePuzzle.Level2
         IEnumerator Ending()
         {
             State = Phase.Ending;
-            LightLantern(2, "The third - for whoever is still on the way home.");
+            LightLantern(2, "Ngọn đèn thứ ba — soi sáng cho bất kỳ ai vẫn đang trên đường trở về nhà.\nThe third — for whoever is still on the way home.");
             nightTarget = 1f;
             foreach (Renderer r in fairyLights)
                 if (r != null)
@@ -742,7 +742,7 @@ namespace PerspectivePuzzle.Level2
             GameAudio.Instance?.PlayDoor();
             SpawnSkyLanterns(26);
             yield return new WaitForSeconds(3.2f);
-            ShowCaption("Hà Nội lights up again. Somewhere, a loudspeaker crackles: \"Dinner's ready - come home!\"", 6f);
+            ShowCaption("Hà Nội lại rực rỡ lên đèn. Đâu đó tiếng loa phường rè rè: \"Cơm chín rồi, về nhà thôi!\"\nHanoi lights up once more. A loudspeaker crackles: \"Dinner's ready — come home!\"", 6.5f);
             focusTarget = Vector3.up * 1.6f;
             sizeScale = 1.05f;
             yield return new WaitForSeconds(4.2f);
@@ -790,65 +790,65 @@ namespace PerspectivePuzzle.Level2
             }
             else if (State != Phase.Play)
             {
-                text = "The lanterns are lit.";
+                text = "Ba ngọn đèn đã được thắp sáng · The lanterns are lit.";
                 target = null;
             }
             else if (n == s0 || n == s1 || n == s2)
             {
                 bool low = Level2Rules.LiftAt(LiftHeight, Level2Rules.LiftLow);
-                text = low ? "Walk onto the red lift." : "Bring the red lift down - drag it (or click it).";
+                text = low ? "Bước lên thang máy đỏ · Walk onto the red lift" : "Hạ thang máy xuống: kéo hoặc click · Lower the lift";
                 target = low ? liftNode.transform : liftT;
             }
             else if (n == liftNode)
             {
                 bool high = Level2Rules.LiftAt(LiftHeight, Level2Rules.LiftHigh);
-                text = high ? "Step out onto the rooftop." : "Drag the lift up to the rooftop (or click the red platform).";
+                text = high ? "Bước ra mái nhà ống · Step out onto the rooftop" : "Kéo thang máy lên mái nhà (hoặc click) · Raise the lift";
                 target = high ? u0.transform : liftT;
             }
             else if (n == u0 || n == u1 || n == u2)
             {
                 if (!lanterns[0].lit)
                 {
-                    text = "Light the first lantern at the end of the rooftop.";
+                    text = "Thắp ngọn đèn lồng thứ nhất ở cuối mái · Light the 1st lantern";
                     target = u2.transform;
                 }
                 else if (!u2.IsLinked(bNorth) && !u2.IsLinked(bSouth))
                 {
-                    text = "Turn the red bridge - drag it around (or click it) until it reaches you.";
+                    text = "Xoay cầu đỏ: kéo hoặc click tay quay · Turn the red bridge";
                     target = bridgeT;
                 }
                 else
                 {
-                    text = "Cross the red bridge to the villa.";
+                    text = "Đi qua cầu đỏ sang biệt thự · Cross the bridge to the villa";
                     target = c2.transform;
                 }
             }
             else if (n == bNorth || n == bPivot || n == bSouth)
             {
-                text = c0.IsLinked(bNorth) || c0.IsLinked(bSouth) ? "Walk on to the villa roof." : "Step back and turn the bridge toward the villa.";
+                text = c0.IsLinked(bNorth) || c0.IsLinked(bSouth) ? "Bước tiếp sang mái biệt thự · Walk on to the villa roof" : "Lùi lại và xoay cầu hướng về biệt thự · Turn bridge toward villa";
                 target = c2.transform;
             }
             else if (n == c0 || n == c1 || n == c2 || n == c3 || n == c4)
             {
                 if (!lanterns[1].lit)
                 {
-                    text = "Light the second lantern on the villa roof.";
+                    text = "Thắp ngọn đèn lồng thứ hai trên ban công · Light the 2nd lantern";
                     target = c2.transform;
                 }
                 else if (!SeamOpen)
                 {
-                    text = "A dead end? Drag the empty sky to turn the whole city (or press Q / E).";
+                    text = "Đường cụt? Kéo trời hoặc bấm Q/E xoay phố · Turn city with Q/E";
                     target = c4.transform;
                 }
                 else
                 {
-                    text = "The roof now reaches the pagoda. Walk to the bell.";
+                    text = "Ảo giác nối lối sang tháp! Đi về phía chuông · Walk to the bell";
                     target = t1.transform;
                 }
             }
             else if (n == t0 || n == t1)
             {
-                text = "Ring the bell under the pagoda.";
+                text = "Thỉnh chuông dưới mái tháp · Ring the bell under the pagoda";
                 target = t1.transform;
             }
             else
