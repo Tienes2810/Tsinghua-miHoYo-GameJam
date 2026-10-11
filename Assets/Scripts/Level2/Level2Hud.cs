@@ -63,11 +63,11 @@ namespace PerspectivePuzzle.Level2
         {
             if (titleStyle != null)
                 return;
-            titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, wordWrap = true, alignment = TextAnchor.MiddleLeft };
-            bodyStyle = new GUIStyle(GUI.skin.label) { fontSize = 24, wordWrap = true, alignment = TextAnchor.MiddleCenter };
-            smallStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, wordWrap = true, alignment = TextAnchor.MiddleLeft };
-            buttonStyle = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = false };
-            bigStyle = new GUIStyle(GUI.skin.label) { fontSize = 64, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
+            titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 21, fontStyle = FontStyle.Bold, wordWrap = true, alignment = TextAnchor.MiddleLeft };
+            bodyStyle = new GUIStyle(GUI.skin.label) { fontSize = 19, wordWrap = true, alignment = TextAnchor.MiddleCenter };
+            smallStyle = new GUIStyle(GUI.skin.label) { fontSize = 15, wordWrap = true, alignment = TextAnchor.MiddleLeft };
+            buttonStyle = new GUIStyle(GUI.skin.label) { fontSize = 17, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = false };
+            bigStyle = new GUIStyle(GUI.skin.label) { fontSize = 54, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
             dot = MakeDot(64);
             vignette = MakeVignette();
         }
@@ -168,33 +168,38 @@ namespace PerspectivePuzzle.Level2
             GUI.color = prev;
 
             float centerX = w * 0.5f;
-            float topY = Mathf.Max(30f, h * 0.10f);
+            float topY = Mathf.Max(24f, h * 0.06f);
 
             // Jam Header
             Paint(smallStyle, GoldInk);
             smallStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(0, topY, w, 28), "TSINGHUA UNIVERSITY  ×  MIHOYO GAME JAM 2026", smallStyle);
+            GUI.Label(new Rect(0, topY, w, 24), "TSINGHUA UNIVERSITY  ×  MIHOYO GAME JAM 2026", smallStyle);
 
             // Title
             Paint(bigStyle, Ink);
-            GUI.Label(new Rect(0, topY + 34, w, 70), "HỒI ỨC PHỐ CŨ", bigStyle);
+            GUI.Label(new Rect(0, topY + 28f, w, 64f), "HỒI ỨC PHỐ CŨ", bigStyle);
 
             // Subtitle
             Paint(smallStyle, new Color(0.85f, 0.85f, 0.80f, 0.9f));
-            GUI.Label(new Rect(0, topY + 104, w, 28), "CHƯƠNG 1: HÀ NỘI HOÀNG HÔN  ·  CHAPTER 1: HANOI AT DUSK", smallStyle);
+            GUI.Label(new Rect(0, topY + 94f, w, 24f), "CHƯƠNG 1: HÀ NỘI HOÀNG HÔN  ·  CHAPTER 1: HANOI AT DUSK", smallStyle);
 
             // Gold divider
-            Fill(new Rect(centerX - 180f, topY + 138f, 360f, 2f), GoldInk * new Color(1, 1, 1, 0.5f));
+            Fill(new Rect(centerX - 160f, topY + 124f, 320f, 2f), GoldInk * new Color(1, 1, 1, 0.5f));
 
             // Story Description
             Paint(bodyStyle, new Color(Ink.r, Ink.g, Ink.b, 0.9f));
-            GUI.Label(new Rect(centerX - 380f, topY + 150f, 760f, 54f),
-                "Thang máy đỏ, nhịp cầu xoay, và góc nhìn ảo ảnh đưa lối về phố cổ.\nRide the red lift, turn the bridge, and find the impossible path through the old quarter.", bodyStyle);
+            string descText = "Thang máy đỏ, nhịp cầu xoay, và góc nhìn ảo ảnh đưa lối về phố cũ.\nRide the red lift, turn the bridge, and find the impossible path through the old quarter.";
+            float descW = Mathf.Min(740f, w - 80f);
+            float descH = bodyStyle.CalcHeight(new GUIContent(descText), descW);
+            Rect descRect = new Rect(centerX - descW * 0.5f, topY + 134f, descW, descH);
+            GUI.Label(descRect, descText, bodyStyle);
+
+            // Buttons starting below description with clean gap
+            float btnW = Mathf.Min(460f, w - 80f);
+            float curY = descRect.yMax + 18f;
 
             // 1. Start Game Button
-            float btnW = 460f;
-            float btnH = 56f;
-            float curY = topY + 220f;
+            float btnH = 50f;
             Rect startRect = new Rect(centerX - btnW * 0.5f, curY, btnW, btnH);
             if (Button(startRect, "▶  BẮT ĐẦU CHƠI  /  START GAME", new Color(0.55f, 0.16f, 0.12f, 0.95f)))
             {
@@ -202,8 +207,8 @@ namespace PerspectivePuzzle.Level2
             }
 
             // 2. Fullscreen Button
-            curY += 66f;
-            Rect fsRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 46f);
+            curY += btnH + 10f;
+            Rect fsRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 42f);
             string fsLabel = ScreenUtils.IsFullscreen ? "🗗  CỬA SỔ  /  WINDOWED (F11)" : "⛶  TOÀN MÀN HÌNH  /  FULLSCREEN (F11)";
             if (Button(fsRect, fsLabel, Plate))
             {
@@ -212,8 +217,8 @@ namespace PerspectivePuzzle.Level2
             }
 
             // 3. Controls Guide Button
-            curY += 56f;
-            Rect helpRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 46f);
+            curY += 52f;
+            Rect helpRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 42f);
             if (Button(helpRect, "📖  HƯỚNG DẪN  ·  CONTROLS GUIDE (H)", Plate))
             {
                 ShowControlsModal = true;
@@ -221,17 +226,17 @@ namespace PerspectivePuzzle.Level2
             }
 
             // 4. Chapter 2 shortcut button
-            curY += 56f;
-            Rect chapRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 40f);
+            curY += 52f;
+            Rect chapRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 38f);
             if (Button(chapRect, "Sang Chương 2 / Chapter 2 →", Plate))
             {
                 g.GoToChapter2();
             }
 
             // Bottom controls strip
-            float infoW = Mathf.Min(840f, w - 60f);
-            float infoH = 68f;
-            Rect infoRect = new Rect(centerX - infoW * 0.5f, h - infoH - 24f, infoW, infoH);
+            float infoW = Mathf.Min(860f, w - 60f);
+            float infoH = 78f;
+            Rect infoRect = new Rect(centerX - infoW * 0.5f, h - infoH - 16f, infoW, infoH);
             Fill(infoRect, Plate);
             Fill(new Rect(infoRect.x, infoRect.yMax - 3f, infoRect.width, 3f), GoldInk * new Color(1, 1, 1, 0.8f));
 
@@ -248,19 +253,19 @@ namespace PerspectivePuzzle.Level2
             Paint(smallStyle, new Color(0.88f, 0.88f, 0.85f, 0.90f));
             string guideSummary = "• Click: Đi / Walk  ·  Kéo / Drag: Xoay phố, thang máy & cầu / Rotate diorama & lifts  ·  F11: Toàn màn hình\n" +
                                   "• Nhấn phím H hoặc click ô này để mở bảng hướng dẫn chi tiết / Press H for full guide";
-            GUI.Label(new Rect(infoRect.x + 20f, infoRect.y + 30f, infoW - 40f, 32f), guideSummary, smallStyle);
+            GUI.Label(new Rect(infoRect.x + 20f, infoRect.y + 30f, infoW - 40f, 40f), guideSummary, smallStyle);
         }
 
         void DrawControlsModal(float w, float h)
         {
             // Dim background behind modal
             Color prev = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.78f);
+            GUI.color = new Color(0f, 0f, 0f, 0.82f);
             GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
             GUI.color = prev;
 
-            float modalW = Mathf.Min(820f, w - 60f);
-            float modalH = 390f;
+            float modalW = Mathf.Min(840f, w - 40f);
+            float modalH = Mathf.Min(450f, h - 40f);
             Rect modalRect = new Rect((w - modalW) * 0.5f, (h - modalH) * 0.5f, modalW, modalH);
 
             Fill(modalRect, Plate);
@@ -269,13 +274,14 @@ namespace PerspectivePuzzle.Level2
             // Modal Header
             Paint(titleStyle, GoldInk);
             titleStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(modalRect.x, modalRect.y + 16f, modalW, 28f), "📖  HƯỚNG DẪN ĐIỀU KHIỂN  ·  CONTROLS GUIDE", titleStyle);
+            GUI.Label(new Rect(modalRect.x, modalRect.y + 14f, modalW, 28f), "📖  HƯỚNG DẪN ĐIỀU KHIỂN  ·  CONTROLS GUIDE", titleStyle);
 
             // Modal Body Rows
-            float rowY = modalRect.y + 54f;
-            float rowH = 46f;
-            float padX = modalRect.x + 28f;
-            float contentW = modalW - 56f;
+            float rowY = modalRect.y + 50f;
+            float rowH = 50f;
+            float rowGap = 8f;
+            float padX = modalRect.x + 24f;
+            float contentW = modalW - 48f;
 
             string[,] rows = {
                 { "🖱️  ĐI LẠI  /  WALK", "Click chuột trái vào các ô vuông hoặc điểm đường để nhân vật di chuyển.\nLeft-click reachable path nodes to walk." },
@@ -288,18 +294,19 @@ namespace PerspectivePuzzle.Level2
             smallStyle.alignment = TextAnchor.MiddleLeft;
             for (int i = 0; i < 5; i++)
             {
-                Fill(new Rect(padX, rowY + i * (rowH + 6f), contentW, rowH), new Color(0f, 0f, 0f, 0.25f));
+                Rect rBox = new Rect(padX, rowY + i * (rowH + rowGap), contentW, rowH);
+                Fill(rBox, new Color(0f, 0f, 0f, 0.28f));
                 Paint(smallStyle, GoldInk);
-                GUI.Label(new Rect(padX + 10f, rowY + i * (rowH + 6f) + 4f, 230f, 38f), rows[i, 0], smallStyle);
+                GUI.Label(new Rect(padX + 12f, rBox.y + 4f, 230f, 42f), rows[i, 0], smallStyle);
 
                 Paint(smallStyle, new Color(0.92f, 0.92f, 0.90f, 0.95f));
-                GUI.Label(new Rect(padX + 246f, rowY + i * (rowH + 6f) + 4f, contentW - 256f, 38f), rows[i, 1], smallStyle);
+                GUI.Label(new Rect(padX + 246f, rBox.y + 4f, contentW - 256f, 42f), rows[i, 1], smallStyle);
             }
 
             // Close button
             float closeW = 260f;
-            float closeH = 42f;
-            Rect closeRect = new Rect(modalRect.x + (modalW - closeW) * 0.5f, modalRect.y + modalH - closeH - 14f, closeW, closeH);
+            float closeH = 40f;
+            Rect closeRect = new Rect(modalRect.x + (modalW - closeW) * 0.5f, modalRect.y + modalH - closeH - 12f, closeW, closeH);
             if (Button(closeRect, "×  ĐÓNG  /  CLOSE (Esc)", new Color(0.55f, 0.16f, 0.12f, 0.95f)))
             {
                 ShowControlsModal = false;
