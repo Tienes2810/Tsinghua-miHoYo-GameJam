@@ -75,7 +75,9 @@ namespace PerspectivePuzzle
             yield return ClickWith(pc, a.position); yield return Frames(25);
             for (int i = 0; i < 3; i++) { yield return ClickWith(pc, b.position); yield return Frames(25); }
             Log("cabinet turns " + CabinetView.Current.TurnsA + "," + CabinetView.Current.TurnsB + " tape=" + CabinetView.Current.IsTapeVisible);
-            Transform tape = GameObject.Find("Cassette").transform;
+            GameObject tapeGo = GameObject.Find("Cassette");
+            if (tapeGo == null) { Log("FAIL cassette not revealed"); Done = true; Destroy(gameObject); yield break; }
+            Transform tape = tapeGo.transform;
             yield return ClickWith(pc, tape.position);
             yield return Until(() => dir.Phase == Level1Phase.ToExit, 4f);
             Log("tape taken: " + dir.Phase + " speaker=" + dir.story.Speaker);
@@ -167,7 +169,9 @@ namespace PerspectivePuzzle
 
         static IEnumerator Frames(int n)
         {
-            for (int i = 0; i < n; i++) yield return null;
+            // at least n frames AND n/60 s, so fast player frame rates don't outrun animations
+            float until = Time.realtimeSinceStartup + n / 60f;
+            for (int i = 0; i < n || Time.realtimeSinceStartup < until; i++) yield return null;
         }
 
         static IEnumerator Until(System.Func<bool> ok, float seconds)

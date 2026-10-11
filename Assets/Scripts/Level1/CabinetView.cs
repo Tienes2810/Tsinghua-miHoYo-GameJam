@@ -171,7 +171,7 @@ namespace PerspectivePuzzle.Level1
                 return;
             }
 
-            if (!GameInput.GetMouseButtonDown(0) || puzzleCamera == null || spinT < 1f)
+            if (!GameInput.GetMouseButtonDown(0) || puzzleCamera == null)
                 return;
             if (!Physics.Raycast(puzzleCamera.ScreenPointToRay(GameInput.mousePosition), out RaycastHit hit, 30f))
                 return;
@@ -190,6 +190,8 @@ namespace PerspectivePuzzle.Level1
 
         void Spin(Transform block, ref int turns)
         {
+            if (spinning != null && spinT < 1f)
+                spinning.localRotation = spinTo;
             spinning = block;
             spinFrom = block.localRotation;
             turns = CabinetBlocks.Normalize(turns + 1);

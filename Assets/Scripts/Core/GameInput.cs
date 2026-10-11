@@ -110,6 +110,20 @@ namespace PerspectivePuzzle
             queue.Enqueue(new Frame { position = to, held = false });
         }
 
+        public static void DragPath(IList<Vector2> points, int framesPerSegment = 6)
+        {
+            if (points == null || points.Count < 2)
+                return;
+            queue.Enqueue(new Frame { position = points[0], held = true });
+            for (int s = 1; s < points.Count; s++)
+                for (int i = 1; i <= framesPerSegment; i++)
+                    queue.Enqueue(new Frame { position = Vector2.Lerp(points[s - 1], points[s], i / (float)framesPerSegment), held = true });
+            Vector2 end = points[points.Count - 1];
+            queue.Enqueue(new Frame { position = end, held = true });
+            queue.Enqueue(new Frame { position = end, held = false });
+            queue.Enqueue(new Frame { position = end, held = false });
+        }
+
         public static void Key(KeyCode k)
         {
             queue.Enqueue(new Frame { position = Input.mousePosition, key = k });

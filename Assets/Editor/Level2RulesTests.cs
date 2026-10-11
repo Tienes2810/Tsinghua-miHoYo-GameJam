@@ -1,63 +1,89 @@
-#if UNITY_EDITOR
 using NUnit.Framework;
 using PerspectivePuzzle.Level2;
 using UnityEngine;
 
-namespace PerspectivePuzzle.EditMode
+namespace PerspectivePuzzle.Tests
 {
     public class Level2RulesTests
     {
         [Test]
-        public void BridgeAlignmentOpensOnlyWithinTolerance()
+        public void SeamTileProjectsOntoTileBesideVillaRoof()
         {
-            float target = Level2Director.BridgeYaw; // 135
-            float tol = Level2Director.Tolerance;    // 14
-
-            Assert.IsTrue(Mathf.Abs(Mathf.DeltaAngle(135f, target)) <= tol, "Exact 135 should be within tolerance");
-            Assert.IsTrue(Mathf.Abs(Mathf.DeltaAngle(140f, target)) <= tol, "140 should be within tolerance");
-            Assert.IsTrue(Mathf.Abs(Mathf.DeltaAngle(125f, target)) <= tol, "125 should be within tolerance");
-
-            Assert.IsFalse(Mathf.Abs(Mathf.DeltaAngle(0f, target)) <= tol, "0 should be outside tolerance");
-            Assert.IsFalse(Mathf.Abs(Mathf.DeltaAngle(90f, target)) <= tol, "90 should be outside tolerance");
-            Assert.IsFalse(Mathf.Abs(Mathf.DeltaAngle(180f, target)) <= tol, "180 should be outside tolerance");
-            Assert.IsFalse(Mathf.Abs(Mathf.DeltaAngle(270f, target)) <= tol, "270 should be outside tolerance");
+            // The tower tile is 2 view-axes nearer to the camera than the tile beside the villa roof.
+            Vector3 beside = Level2Rules.SeamFar + Vector3.left;
+            Vector2 a = Level2Rules.Project(Level2Rules.SeamNear);
+            Vector2 b = Level2Rules.Project(beside);
+            Assert.Less(Vector2.Distance(a, b), 1e-3f);
+            Assert.AreEqual(beside, Level2Rules.SeamNear + Level2Rules.SeamOffset);
         }
 
         [Test]
-        public void TowerAscentOpensOnlyWithinTolerance()
+        public void SeamTileIsReallyFarAwayInSpace()
         {
-            float target = Level2Director.TowerYaw; // 225
-            float tol = Level2Director.Tolerance;   // 14
-
-            Assert.IsTrue(Mathf.Abs(Mathf.DeltaAngle(225f, target)) <= tol, "Exact 225 should be within tolerance");
-            Assert.IsTrue(Mathf.Abs(Mathf.DeltaAngle(230f, target)) <= tol, "230 should be within tolerance");
-            Assert.IsTrue(Mathf.Abs(Mathf.DeltaAngle(215f, target)) <= tol, "215 should be within tolerance");
-
-            Assert.IsFalse(Mathf.Abs(Mathf.DeltaAngle(0f, target)) <= tol, "0 should be outside tolerance");
-            Assert.IsFalse(Mathf.Abs(Mathf.DeltaAngle(135f, target)) <= tol, "135 should be outside tolerance");
-            Assert.IsFalse(Mathf.Abs(Mathf.DeltaAngle(315f, target)) <= tol, "315 should be outside tolerance");
+            Vector3 beside = Level2Rules.SeamFar + Vector3.left;
+            Assert.Greater(Vector3.Distance(Level2Rules.SeamNear, beside), 3f);
         }
 
         [Test]
-        public void LanternPropInitialStateIsUnlit()
+        public void ViewAxisMatchesIsometricCamera()
         {
-            var go = new GameObject("TestLantern");
-            var lantern = go.AddComponent<LanternProp>();
-            lantern.SetLit(false);
+            Vector3 forward = Quaternion.Euler(Level2Rules.CameraPitch, Level2Rules.CameraYaw, 0f) * Vector3.forward;
+            Assert.Greater(Vector3.Dot(forward, Level2Rules.ViewAxis.normalized), 0.9999f);
+        }
 
-            Assert.IsFalse(lantern.IsLit, "Lantern should start unlit");
+        [TestCase(0f, 0f)]
+        [TestCase(1.4f, 0f)]
+        [TestCase(1.6f, 3f)]
+        [TestCase(3f, 3f)]
+        public void LiftSnapsToFloors(float h, float expected)
+        {
+            Assert.AreEqual(expected, Level2Rules.SnapLift(h));
+        }
 
-            lantern.SetLit(true);
-            Assert.IsTrue(lantern.IsLit, "Lantern should report lit after SetLit(true)");
+        [TestCase(44f, 0f)]
+        [TestCase(46f, 90f)]
+        [TestCase(-100f, -90f)]
+        [TestCase(181f, 180f)]
+        public void QuarterSnap(float deg, float expected)
+        {
+            Assert.AreEqual(expected, Level2Rules.SnapQuarter(deg));
+        }
 
-            Object.DestroyImmediate(go);
+        [TestCase(0f, true)]
+        [TestCase(180f, true)]
+        [TestCase(-180f, true)]
+        [TestCase(360f, true)]
+        [TestCase(90f, false)]
+        [TestCase(-90f, false)]
+        [TestCase(270f, false)]
+        public void BridgeOrientation(float deg, bool northSouth)
+        {
+            Assert.AreEqual(northSouth, Level2Rules.BridgeNorthSouth(deg));
+        }
+
+        [TestCase(0f, true)]
+        [TestCase(360f, true)]
+        [TestCase(-0.2f, true)]
+        [TestCase(90f, false)]
+        [TestCase(180f, false)]
+        [TestCase(270f, false)]
+        public void SeamOnlyAlignsAtOneYaw(float yaw, bool aligned)
+        {
+            Assert.AreEqual(aligned, Level2Rules.SeamAligned(yaw));
         }
 
         [Test]
-        public void Level2PresenterHasValidTotalLanterns()
+        public void PuzzleStartsUnsolved()
         {
-            Assert.AreEqual(3, Level2Presenter.TotalLanterns, "Level 2 should have exactly 3 lanterns");
+            Assert.IsFalse(Level2Rules.SeamAligned(Level2Rules.StartWorldYaw), "seam must start broken");
+            Assert.IsFalse(Level2Rules.BridgeNorthSouth(Level2Rules.StartBridgeYaw), "bridge must start blocked");
+        }
+
+        [Test]
+        public void DraggingRightTurnsCityNegativeYaw()
+        {
+            Assert.AreEqual(-1, Level2Rules.DragYawSign);
+            Assert.Greater(Level2Rules.DegreesPerPixel, 0f);
         }
     }
 }
-#endif

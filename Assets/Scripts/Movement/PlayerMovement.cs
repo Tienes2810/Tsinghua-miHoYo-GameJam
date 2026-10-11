@@ -76,14 +76,21 @@ namespace PerspectivePuzzle.Movement
             Sequence sequence = DOTween.Sequence().SetLink(gameObject);
             for (int i = 1; i < path.Count; i++)
             {
+                PathNode from = path[i - 1];
                 PathNode node = path[i];
                 Vector3 target = LocalPoint(node);
+                if (from.seamPeer == node || node.seamPeer == from)
+                {
+                    AppendSeamHop(sequence, from, node);
+                    continue;
+                }
+
                 float distance = Vector3.Distance(transform.parent == null
-                    ? path[i - 1].transform.position
-                    : LocalPoint(path[i - 1]), target);
+                    ? from.transform.position
+                    : LocalPoint(from), target);
                 float duration = Mathf.Max(0.08f, distance * secondsPerUnit);
                 if (faceTravel)
-                    sequence.Append(FaceLocal(path[i - 1].transform.position, node.transform.position));
+                    sequence.Append(FaceLocal(from.transform.position, node.transform.position));
                 sequence.Append(transform.DOLocalMove(target, duration).SetEase(Ease.InOutSine));
                 sequence.AppendCallback(() => currentNode = node);
             }
@@ -111,6 +118,38 @@ namespace PerspectivePuzzle.Movement
                 ? worldLook
                 : Quaternion.Inverse(transform.parent.rotation) * worldLook;
             return transform.DOLocalRotateQuaternion(localLook, 0.16f).SetEase(Ease.OutSine);
+        }
+
+        void AppendSeamHop(Sequence sequence, PathNode from, PathNode node)
+        {
+            // "near" owns the offset: near.position + offset projects onto the tile next to "far".
+            bool toNear = node.seamOffset.sqrMagnitude > 0.0001f;
+            PathNode near = toNear ? node : from;
+            PathNode far = toNear ? from : node;
+            Vector3 ghost = near.transform.TransformPoint(near.seamOffset);
+            Vector3 farPos = far.transform.position;
+            Vector3 nearPos = near.transform.position;
+            Vector3 edgeFar = (farPos + ghost) * 0.5f;
+            Vector3 edgeNear = nearPos + (farPos - ghost) * 0.5f;
+
+            Vector3 startPos = toNear ? farPos : nearPos;
+            Vector3 firstEdge = toNear ? edgeFar : edgeNear;
+            Vector3 secondEdge = toNear ? edgeNear : edgeFar;
+            Vector3 endPos = toNear ? nearPos : farPos;
+            Vector3 heading = toNear ? ghost - farPos : farPos - ghost;
+            float half = Mathf.Max(0.06f, Vector3.Distance(startPos, firstEdge) * secondsPerUnit);
+
+            if (faceTravel)
+                sequence.Append(FaceLocal(Vector3.zero, heading));
+            sequence.Append(transform.DOLocalMove(LocalOf(firstEdge), half).SetEase(Ease.InSine));
+            sequence.AppendCallback(() => transform.localPosition = LocalOf(secondEdge));
+            sequence.Append(transform.DOLocalMove(LocalOf(endPos), half).SetEase(Ease.OutSine));
+            sequence.AppendCallback(() => currentNode = node);
+        }
+
+        Vector3 LocalOf(Vector3 world)
+        {
+            return transform.parent == null ? world : transform.parent.InverseTransformPoint(world);
         }
 
         Vector3 LocalPoint(PathNode node)

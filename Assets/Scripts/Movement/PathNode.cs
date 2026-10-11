@@ -9,6 +9,14 @@ namespace PerspectivePuzzle.Movement
         [SerializeField] List<PathNode> neighbors = new();
         [SerializeField] bool walkable = true;
 
+        /// <summary>
+        /// Impossible-geometry seam. When this node and <see cref="seamPeer"/> are linked,
+        /// the hop between them passes through <c>position + seamOffset</c> (a point that projects
+        /// to the same screen pixel as this node) and the walker is warped instead of tweened.
+        /// </summary>
+        [System.NonSerialized] public PathNode seamPeer;
+        [System.NonSerialized] public Vector3 seamOffset;
+
         public string NodeId => string.IsNullOrEmpty(nodeId) ? name : nodeId;
         public IReadOnlyList<PathNode> Neighbors => neighbors;
         public bool Walkable => walkable;

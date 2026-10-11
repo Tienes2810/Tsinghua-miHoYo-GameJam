@@ -56,6 +56,9 @@ namespace PerspectivePuzzle.Level1
         {
             if (EndScreen && Time.unscaledTime - endShownAt > 1.5f && GameInput.GetKeyDown(KeyCode.Escape))
                 Application.Quit();
+            if (EndScreen && Time.unscaledTime - endShownAt > 2.4f &&
+                (GameInput.GetKeyDown(KeyCode.Return) || GameInput.GetKeyDown(KeyCode.KeypadEnter) || GameInput.GetKeyDown(KeyCode.Space)))
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
         }
 
         void DrawEnd(float width, float height)
@@ -89,7 +92,7 @@ namespace PerspectivePuzzle.Level1
                 small.normal.textColor = faint;
                 small.alignment = TextAnchor.MiddleCenter;
                 GUI.color = faint;
-                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Level 1 complete  -  Esc to quit", small);
+                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Level 1 complete  -  Enter: Chapter 2  -  Esc to quit", small);
                 small.alignment = TextAnchor.MiddleLeft;
             }
             GUI.color = Color.white;
