@@ -24,7 +24,7 @@ namespace PerspectivePuzzle.Puzzle
                 return;
 
             float yaw = 0f;
-            if (!pointerDrives && Input.GetMouseButton(1))
+            if (!pointerDrives && GameInput.GetMouseButton(1))
                 yaw += Input.GetAxis("Mouse X") * dragDegrees;
             if (Input.GetKey(KeyCode.E))
                 yaw += keyDegreesPerSecond * Time.deltaTime;

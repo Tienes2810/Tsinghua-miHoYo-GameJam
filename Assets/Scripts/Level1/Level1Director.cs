@@ -249,7 +249,7 @@ namespace PerspectivePuzzle.Level1
 
             bool waiting = phase == Level1Phase.NeedRotate || phase == Level1Phase.InRoom
                 || phase == Level1Phase.NeedStair || phase == Level1Phase.Round2 || phase == Level1Phase.ToRoof;
-            if (!waiting || Input.GetMouseButton(0) || Input.anyKeyDown)
+            if (!waiting || GameInput.GetMouseButton(0) || GameInput.anyKeyDown)
                 idle = 0f;
             else
                 idle += Time.deltaTime;
@@ -481,7 +481,7 @@ namespace PerspectivePuzzle.Level1
                 const float hold = 2.6f;
                 while (t < hold)
                 {
-                    if (Input.GetMouseButtonDown(0))
+                    if (GameInput.GetMouseButtonDown(0))
                         break;
                     float edge = 0.35f;
                     float alpha = t < edge ? t / edge : hold - t < edge ? (hold - t) / edge : 1f;
@@ -568,7 +568,7 @@ namespace PerspectivePuzzle.Level1
             float t = 0f;
             while (t < 3f)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (GameInput.GetMouseButtonDown(0))
                     break;
                 t += Time.deltaTime;
                 yield return null;
@@ -1317,7 +1317,7 @@ namespace PerspectivePuzzle.Level1
             float t = 0f;
             while (t < seconds)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (GameInput.GetMouseButtonDown(0))
                     break;
                 t += Time.deltaTime;
                 yield return null;

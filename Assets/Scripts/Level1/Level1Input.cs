@@ -23,20 +23,20 @@ namespace PerspectivePuzzle.Level1
                 return;
             }
 
-            if (Input.GetMouseButtonDown(0))
+            if (GameInput.GetMouseButtonDown(0))
             {
                 held = true;
                 dragged = false;
-                down = Input.mousePosition;
+                down = GameInput.mousePosition;
                 lastX = down.x;
             }
 
             if (!held)
                 return;
 
-            if (Input.GetMouseButton(0))
+            if (GameInput.GetMouseButton(0))
             {
-                Vector3 now = Input.mousePosition;
+                Vector3 now = GameInput.mousePosition;
                 if ((now - down).sqrMagnitude > 36f)
                     dragged = true;
                 float dx = now.x - lastX;
@@ -45,7 +45,7 @@ namespace PerspectivePuzzle.Level1
                     rotator.AddYaw(dx * degreesPerPixel * Mathf.Sign(DragYaw.DegreesForDrag(1f)));
             }
 
-            if (!Input.GetMouseButtonUp(0))
+            if (!GameInput.GetMouseButtonUp(0))
                 return;
 
             held = false;
@@ -54,7 +54,7 @@ namespace PerspectivePuzzle.Level1
             if (dragged)
                 director.OnRotateReleased();
             else if (view != null)
-                director.OnClick(view.ScreenPointToRay(Input.mousePosition));
+                director.OnClick(view.ScreenPointToRay(GameInput.mousePosition));
         }
     }
 }

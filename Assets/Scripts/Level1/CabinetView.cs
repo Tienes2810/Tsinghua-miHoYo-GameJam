@@ -74,16 +74,29 @@ namespace PerspectivePuzzle.Level1
             Paint(tape.GetComponent<Renderer>(), new Color(0.08f, 0.08f, 0.09f));
             tape.gameObject.SetActive(false);
 
+            BuildFrame();
+
+            // Blocks face the camera (+z is the door side), seen from a raised 3/4 angle so
+            // the player can read which way each door points.
             var camGo = new GameObject("CabinetCamera");
             camGo.transform.SetParent(transform, false);
-            camGo.transform.position = stage.position + new Vector3(0f, 0.35f, -3.4f);
-            camGo.transform.LookAt(stage.position + Vector3.up * 0.7f);
+            camGo.transform.position = stage.position + new Vector3(0f, 3.1f, 6.2f);
+            camGo.transform.LookAt(stage.position + Vector3.up * 0.75f);
             puzzleCamera = camGo.AddComponent<Camera>();
             puzzleCamera.clearFlags = CameraClearFlags.SolidColor;
             puzzleCamera.backgroundColor = new Color(0.16f, 0.13f, 0.11f);
             puzzleCamera.nearClipPlane = 0.05f;
             puzzleCamera.farClipPlane = 40f;
-            puzzleCamera.fieldOfView = 32f;
+            puzzleCamera.fieldOfView = 34f;
+
+            var keyGo = new GameObject("CabinetKey");
+            keyGo.transform.SetParent(transform, false);
+            keyGo.transform.position = stage.position + new Vector3(1.5f, 3f, 3f);
+            var key = keyGo.AddComponent<Light>();
+            key.type = LightType.Point;
+            key.range = 9f;
+            key.intensity = 1.6f;
+            key.color = new Color(1f, 0.86f, 0.66f);
 
             Camera main = Camera.main;
             if (main != null && main != puzzleCamera)
@@ -107,7 +120,34 @@ namespace PerspectivePuzzle.Level1
             door.localPosition = new Vector3(0f, 0f, 0.52f);
             door.localScale = new Vector3(0.72f, 0.78f, 0.06f);
             Paint(door.GetComponent<Renderer>(), new Color(0.62f, 0.5f, 0.32f));
+            var knob = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
+            knob.name = "Knob";
+            knob.SetParent(door, false);
+            knob.localPosition = new Vector3(0.32f, 0f, 1.2f);
+            knob.localScale = new Vector3(0.14f, 0.1f, 1.6f);
+            Paint(knob.GetComponent<Renderer>(), new Color(0.86f, 0.68f, 0.3f));
             return block;
+        }
+
+        void BuildFrame()
+        {
+            // Plain tu che body around the two blocks: base, top and back panel.
+            Color wood = new Color(0.26f, 0.16f, 0.1f);
+            Slab("Base", new Vector3(0f, -0.08f, 0f), new Vector3(3.2f, 0.16f, 1.2f), wood);
+            Slab("Top", new Vector3(0f, 1.78f, 0f), new Vector3(3.2f, 0.12f, 1.2f), wood);
+            Slab("Back", new Vector3(0f, 0.85f, -0.62f), new Vector3(3.2f, 1.86f, 0.08f), wood * 0.8f);
+            Slab("Floor", new Vector3(0f, -0.2f, 0.6f), new Vector3(7f, 0.08f, 5f), new Color(0.55f, 0.38f, 0.22f));
+        }
+
+        void Slab(string name, Vector3 local, Vector3 size, Color color)
+        {
+            var slab = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
+            slab.name = name;
+            slab.SetParent(stage, false);
+            slab.localPosition = local;
+            slab.localScale = size;
+            Destroy(slab.GetComponent<Collider>());
+            Paint(slab.GetComponent<Renderer>(), color);
         }
 
         void Update()
@@ -125,15 +165,15 @@ namespace PerspectivePuzzle.Level1
             if (tape != null && tape.gameObject.activeSelf != solved)
                 tape.gameObject.SetActive(solved);
 
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
+            if (GameInput.GetKeyDown(KeyCode.Escape) || GameInput.GetMouseButtonDown(1))
             {
                 Close(false);
                 return;
             }
 
-            if (!Input.GetMouseButtonDown(0) || puzzleCamera == null || spinT < 1f)
+            if (!GameInput.GetMouseButtonDown(0) || puzzleCamera == null || spinT < 1f)
                 return;
-            if (!Physics.Raycast(puzzleCamera.ScreenPointToRay(Input.mousePosition), out RaycastHit hit, 30f))
+            if (!Physics.Raycast(puzzleCamera.ScreenPointToRay(GameInput.mousePosition), out RaycastHit hit, 30f))
                 return;
 
             if (tape != null && solved && hit.transform.IsChildOf(tape))
@@ -153,6 +193,8 @@ namespace PerspectivePuzzle.Level1
             spinning = block;
             spinFrom = block.localRotation;
             turns = CabinetBlocks.Normalize(turns + 1);
+            if (PerspectivePuzzle.Audio.GameAudio.Instance != null)
+                PerspectivePuzzle.Audio.GameAudio.Instance.PlaySwitch();
             spinTo = Quaternion.Euler(0f, turns * 90f, 0f);
             spinT = 0f;
         }
@@ -179,7 +221,7 @@ namespace PerspectivePuzzle.Level1
         {
             if (!IsOpen)
                 return;
-            const string line = "Turn each block by 90°. The cassette is reachable in only one arrangement. Right click to step back.";
+            const string line = "Click a block to turn it 90°. Open both doors toward each other to reach what is inside. Right click / Esc to step back.";
             float width = Mathf.Min(920f, Screen.width - 40f);
             Rect rect = new Rect((Screen.width - width) * 0.5f, Screen.height - 90f, width, 56f);
             GUI.color = new Color(0.93f, 0.9f, 0.82f, 0.94f);

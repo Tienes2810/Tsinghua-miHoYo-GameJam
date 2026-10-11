@@ -54,7 +54,7 @@ namespace PerspectivePuzzle.Level1
 
         void Update()
         {
-            if (EndScreen && Time.unscaledTime - endShownAt > 1.5f && Input.GetKeyDown(KeyCode.Escape))
+            if (EndScreen && Time.unscaledTime - endShownAt > 1.5f && GameInput.GetKeyDown(KeyCode.Escape))
                 Application.Quit();
         }
 
