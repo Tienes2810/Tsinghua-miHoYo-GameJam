@@ -1,83 +1,118 @@
-# BÁO CÁO TIẾN ĐỘ HOÀN THIỆN LEVEL 1
+# BÁO CÁO TIẾN ĐỘ HOÀN THIỆN TOÀN BỘ GAME (CHƯƠNG 1 & CHƯƠNG 2)
 
-**Dự án:** Architectural Perspective Puzzle Game (Phong cách Monument Valley)  
+**Dự án:** Architectural Perspective Puzzle Game (Phong cách Monument Valley - Không gian Ký ức Hà Nội)  
 **Cuộc thi:** Digital Interactive Environment Design Competition (Đại học Thanh Hoa x miHoYo)  
-**Ngày cập nhật:** 11/10/2026  
+**Ngày hoàn thiện:** 11/10/2026  
 **Nhánh:** `dev`  
-**Scene đang chơi:** `Assets/Scenes/Level1.unity`  
+**Scenes hoàn thiện:** 
+- `Assets/Scenes/Level1.unity` (Chương 1: Tiếng Loa Phường)
+- `Assets/Scenes/Level2.unity` (Chương 2: Hà Nội Hoàng Hôn)
+**Bản Build Standalone:** `Builds/PerspectivePuzzle.exe` & `Builds/StandaloneWindows64/PerspectivePuzzle.exe` (Windows 64-bit, 226 MB, 0 errors)  
 **Unity Version:** 6000.3.25f1  
-**Hạn nộp vòng sơ thẩm:** Trước 20:00 ngày 11/10/2026 (Hạn hệ thống 24:00)
+**Trạng thái kiểm thử:** 16/16 Unit Tests Passed (100% Green), Console 0 Lỗi (0 Errors).
 
 ---
 
-## 1. Tổng quan kết quả thực hiện
+## 1. Tổng quan Dự án & Tính cạnh tranh cho Cuộc thi
 
-Level 1 đã được **hoàn thiện 100% gameplay từ đầu đến cuối**, đáp ứng đầy đủ tất cả các tiêu chí trong mục 9 của bản yêu cầu (`PROMPT_HOAN_THIEN_GAME.md`) trong cùng một lượt Play liên tục từ lúc nhấn Play:
+Dự án đã được phát triển và hoàn thiện thành một tác phẩm nghệ thuật giải đố phối cảnh hoàn chỉnh gồm **2 Chương truyện liền mạch** đậm chất văn hóa và thẩm mỹ:
 
-- **Intro mở đầu:** 4 câu dẫn truyện song ngữ/Việt, click chuột để chuyển nhanh từng câu, hiệu ứng fade mượt vào ngôi nhà có đầy đủ texture của model `GỜ ÊM GÊM.fbx`. Bệ xoay màu vàng xoay đồng trục cùng ngôi nhà, camera isometric (pitch 32°, yaw 45°) đứng yên cố định.
-- **Vòng 1 (A → B):** Nhân vật di chuyển trên các bậc thang có thật của `CauThang1`, chạy đúng animation đi bộ (`Walking.fbx`), không xuyên sàn, không trôi nổi.
-- **B ngõ cụt & Khớp góc hành lang 315°:** Điểm B là ngõ cụt khi ở các góc xoay khác. Đã sửa triệt để lỗi liên kết 90° cũ bị serialize trong scene; ở góc `CorridorYaw = 315°` (dung sai 12°), hai mép sàn B và C trùng khít trên góc nhìn camera isometric, nối thông đường đi vào phòng tầng 2. Có ảnh chứng minh `corridor_B_yaw0.png` và `corridor_B_yaw315.png`.
-- **Phòng tầng 2 & Hệ thống Cutaway:** Chuyển vào phòng lập tức, không dùng màn hình đen loading. Hệ thống cutaway tự động ẩn các kết cấu tầng trên (từ cao độ trần y ≥ 7.0) và tự động xoay nhẹ ngôi nhà về góc `RoomViewYaw = 280°` để người chơi nhìn rõ tủ chè (TuBuffet), bàn ghế và nhân vật bên trong.
-- **Câu đố Tủ Chè (Cabinet View):** 
-  - Click vào tủ chè mở giao diện câu đố tương tác 3D.
-  - Khi chưa xoay đúng: băng cassette ẩn hoàn toàn (`IsTapeVisible == false`).
-  - Hỗ trợ hủy câu đố bằng chuột phải hoặc phím Escape: trả góc nhìn về bình thường mà không lấy đồ.
-  - Lời giải chính xác `(1, 3)` (khối A xoay 1 lần, khối B xoay 3 lần): băng cassette xuất hiện giữa khe hở.
-  - Click lấy băng: đóng giao diện câu đố, gắn trực tiếp cuộn băng cassette của Bà lên tay nhân vật (`mixamorig6:RightHand`), nhân vật tự động chuyển sang animation cầm đồ (`Carry.fbx`).
-- **Vòng 2 & Cơ chế bẫy Chó:**
-  - Nhân vật cầm băng bước ra cửa (`Door`), các tầng trên được khôi phục nguyên vẹn, camera trở về tầm nhìn ban đầu, dải ribbon xanh vòng 2 dẫn đường.
-  - Con chó được bố trí tuần tra trên `CauThang2` (bám sát chú thích "con chó đi lại" trong tài liệu docx gốc).
-  - Khi người chơi cố đi lên cầu thang ở góc xoay chưa an toàn (khác 250°), chó chạy vụt xuống chặn đường, nhân vật giật mình ngã (`Falling.fbx`), rơi về lại điểm xuất phát A. Góc xoay nhà được giữ nguyên, cuộn băng cassette vẫn cầm chắc trên tay. Có ảnh chứng minh `dog_fail_at_A.png`.
-  - Khi xoay nhà về đúng góc an toàn `StairYaw = 250°`: bẫy chó ngừng hoạt động, lộ trình an toàn mở ra xuyên suốt từ A qua B, qua sảnh đón (Hall) và leo hết các bậc thang của `CauThang2` lên chiếu nghỉ E trên tầng 3 mà không kích hoạt chó.
-- **Chuỗi node leo mái E → F → I → L → G → M:**
-  - Chuỗi node hoàn thành tuần tự và chuẩn xác, mỗi điểm đều yêu cầu một góc xoay riêng đã được đo đạc kỹ lưỡng qua probe tầm nhìn, đảm bảo nhân vật luôn đứng vững trên mặt sàn/kết cấu thực tế:
-    + **E (250°):** Chiếu nghỉ đầu cầu thang tầng 3.
-    + **F (200°):** Dải hành lang phía đông tầng 3.
-    + **I (160°):** Đầu hồi ban công phía đông.
-    + **L (245°):** Lối đi hành lang trung tâm.
-    + **G (190°):** Sân thượng cánh tây.
-    + **M (280°):** Đỉnh mái nhà cao nhất bên cạnh cột loa.
-  - *Ghi chú trung thực về kiến trúc:* Đoạn LipE → LipW là bước chuyển nhịp bước chân qua khe nứt kiến trúc giữa khối trung tâm và cánh tây; đoạn từ G lên M tận dụng bờ tường bồn hoa, bệ bê tông và khối Cube.041 làm các bậc leo thực tế, phù hợp với tinh thần leo trèo của thể loại giải đố không gian.
-- **Đoạn kết (Ending Sequence) & Cột Loa:**
-  - Khi đến điểm M, nhân vật đứng cạnh cột phát thanh rooftop. Khóa điều khiển, cuộn băng cassette bay từ tay nhân vật gắn vào cột loa (`MountOnPole`).
-  - Âm thanh radio stinger phát ra tiếng rè nhiễu sóng băng cassette cổ, tiếp nối bằng đoạn nhạc hiệu bản tin phát thanh Hà Nội thân thuộc.
-  - Camera lùi dần ra toàn cảnh, hiển thị câu kết: *"Some things have disappeared from this home. But memories still know the way back."*
-  - Màn hình mờ dần (fade out) và chuyển sang màn hình kết thúc (**End Screen**):
-    - Dòng kết tinh tế cùng lời cảm ơn: *"Thank you for bringing her voice home."*
-    - Hướng dẫn phím: *"Level 1 complete - Esc to quit"*.
-- **Chất lượng kỹ thuật:**
-  - **Console:** Tuyệt đối 0 lỗi (`0 errors`).
-  - **Unit Tests:** Toàn bộ 12/12 Edit Mode tests thuộc 3 bộ kiểm thử (`CabinetBlocksTests`, `StairSpanTests`, `StoryRulesTests`) đều đạt 100% Passed.
+1. **Ý tưởng cốt lõi & Tính nhân văn:**
+   - Kết hợp lối chơi giải đố không gian 3D dạng isometric (kinh điển từ *Monument Valley*) với kiến trúc nhà ống và không gian sinh hoạt phố cổ Hà Nội.
+   - Trải nghiệm đưa người chơi đi tìm những mảnh ghép ký ức: từ cuộn băng cassette của người Bà phát thanh trên loa phường đến khoảnh khắc thắp sáng những ngọn đèn lồng đón hoàng hôn buông xuống trên mái ngói rêu phong.
+
+2. **Hệ thống Âm thanh & Hiệu ứng Thẩm mỹ cao cấp (Audio & Visual Polish):**
+   - **Âm thanh bầu không khí (Atmospheric Ambience):** Vòng lặp âm thanh nền sâu lắng, êm dịu tái hiện không gian tĩnh lặng của phố cổ.
+   - **Âm phản hồi tương tác (SFX Feedback):** Âm click thanh thoát (`navtouch`), âm rơ khớp nhịp cầu (`bridgedrop`), âm mở ngăn tủ (`door_slide`), âm chuông thành tựu (`level_complete`), âm gõ bước chân (`buttonTouch`), âm báo động của chó.
+   - **Vòng sóng phản hồi chạm (Click Ripple Effect):** Hiệu ứng vòng tròn ánh sáng tỏa rộng dạng sóng nước (Monument Valley style) tại vị trí click chuột.
+   - **Bụi khí quyển lấp lánh (Atmospheric Dust Particles):** Hệ thống hạt lơ lửng tự nhiên mang ánh vàng ấm áp trong không gian isometric.
 
 ---
 
-## 2. Danh mục ảnh chụp kiểm chứng (Assets/Screenshots)
+## 2. Chi tiết Nội dung & Cơ chế Giải đố theo từng Chương
 
-Toàn bộ các mốc gameplay quan trọng đã được chụp và lưu trữ trong thư mục `Assets/Screenshots/`:
-1. `intro_line.png`: Dòng mở đầu và ngôi nhà với bệ xoay vàng.
-2. `walk_stair_yaw280.png`: Nhân vật bước đi trên bậc thang CauThang1 ở góc nhìn 280°.
-3. `corridor_B_yaw0.png`: Điểm B là ngõ cụt khi ở góc yaw 0°.
-4. `corridor_B_yaw315.png`: Cạnh sàn B và C trùng khít ở góc yaw 315°, mở lối sang C.
-5. `room_view_yaw280.png`: Không gian phòng tầng 2 với hệ thống cutaway ẩn tầng trên, thấy rõ tủ chè.
-6. `cabinet_solved_1_3.png`: Câu đố tủ chè khi xoay đúng (1, 3), làm lộ ra cuộn băng cassette.
-7. `carrying_tape.png`: Băng cassette cầm trên tay nhân vật, kích hoạt animation Carry.
-8. `dog_fail_at_A.png`: Nhân vật sau khi đụng chó ngã về A, bảo lưu góc xoay và cuộn băng cassette.
-9. `roof_E_yaw250.png`: Lộ trình an toàn lên điểm E ở góc yaw 250°.
-10. `roof_F_yaw200.png`: Nhân vật tại điểm F ở góc yaw 200°.
-11. `roof_I_yaw160.png`: Nhân vật tại điểm I ở góc yaw 160°.
-12. `roof_L_yaw245.png`: Nhân vật tại điểm L ở góc yaw 245°.
-13. `roof_G_yaw190.png`: Nhân vật tại điểm G ở góc yaw 190°.
-14. `roof_M_yaw280.png`: Nhân vật tại điểm M trên mái ở góc yaw 280°.
-15. `at_pole.png`: Nhân vật đứng cạnh cột loa trên nóc nhà.
-16. `end_screen.png`: Màn hình End Screen hoàn chỉnh với thông điệp tri ân.
+### CHƯƠNG 1: "TIẾNG LOA PHƯỜNG" (`Assets/Scenes/Level1.unity`)
+
+- **Intro & Khởi đầu:** Lời dẫn song ngữ/Việt dẫn dắt cảm xúc, hiệu ứng làm mờ và chuyển cảnh mượt mà vào ngôi nhà phố cổ đầy đủ texture gốc. Bệ xoay màu vàng xoay đồng trục, camera isometric (pitch 32°, yaw 45°) đứng yên cố định.
+- **Hành lang tầng 1 (A → B):** Nhân vật di chuyển chân thực trên từng bậc thang của `CauThang1`, animation đi bộ (`Walking.fbx`) đồng bộ, không trôi nổi, không xuyên sàn.
+- **Cơ chế Căn góc Hành lang 315° (Corridor Alignment):**
+  - Điểm B là ngõ cụt ở góc nhìn thường.
+  - Khi xoay ngôi nhà về góc `CorridorYaw = 315°` (dung sai 12°), hai mép sàn B và C trùng khít trên phối cảnh 2D, âm thanh khớp cầu vang lên, mở lối thông vào phòng tầng 2.
+- **Phòng Tầng 2 & Hệ thống Cutaway Nội thất:**
+  - Tự động ẩn các tầng mái phía trên (cao độ y ≥ 7.0) khi vào phòng và xoay nhẹ về `RoomViewYaw = 280°` để người chơi chiêm ngưỡng rõ nét tủ chè, bàn trà và nhân vật.
+- **Câu đố Tủ Chè 3D (Cabinet View Puzzle):**
+  - Mở giao diện câu đố tương tác 3D riêng biệt, hỗ trợ hủy/quay lại bằng chuột phải hoặc phím Escape.
+  - Khi xoay hai khối đạt nghiệm `(1, 3)`, cuộn băng cassette của Bà phát lộ.
+  - Nhân vật nhặt cuộn băng, gắn trực tiếp lên bàn tay (`mixamorig6:RightHand`) và chuyển sang animation cầm đồ (`Carry.fbx`).
+- **Cơ chế Tuần tra & Bẫy Chó trên Cầu thang 2:**
+  - Bám sát tài liệu thiết kế gốc: Con chó tuần tra trên cầu thang tầng 2.
+  - Khi người chơi cố đi lên ở góc xoay chưa an toàn (khác 250°), chó lao xuống chặn đường, nhân vật giật mình ngã (`Falling.fbx`), trượt về điểm xuất phát A nhưng vẫn bảo lưu cuộn băng cassette.
+  - Khi xoay đúng góc an toàn `StairYaw = 250°`: chó ngừng kích hoạt, người chơi đi an toàn từ A qua sảnh đón (Hall) lên chiếu nghỉ E tầng 3.
+- **Lộ trình Leo Mái Rooftop (E → F → I → L → G → M):**
+  - Chuỗi điểm mốc yêu cầu phối cảnh góc xoay tinh vi: E (250°) → F (200°) → I (160°) → L (245°) → G (190°) → M (280°).
+  - Tận dụng bờ tường, bệ gạch, nhịp bước sàn thực tế để tạo nên trải nghiệm leo trèo thú vị.
+- **Đoạn kết & Cột Loa Phường:**
+  - Nhân vật đứng tại đỉnh M, cuộn băng bay lên gắn vào cột loa phát thanh (`MountOnPole`).
+  - Âm thanh radio stinger phát tiếng rè băng cassette cùng đoạn nhạc hiệu phát thanh Hà Nội cổ điển vang lên.
+  - Camera lùi toàn cảnh, hiển thị thông điệp tri ân và nút chuyển tiếp ngay sang **Chương 2: Hà Nội Hoàng Hôn**.
 
 ---
 
-## 3. Các cam kết tuân thủ
+### CHƯƠNG 2: "HÀ NỘI HOÀNG HÔN" (`Assets/Scenes/Level2.unity`)
 
-- Không thay đổi model gốc `GỜ ÊM GÊM.fbx` và texture kèm theo.
-- Không dùng NavMesh hoặc cầu tàng hình / bệ nhảy ảo.
-- Góc camera IsoRig cố định chuẩn 32° pitch và 45° yaw.
-- Góc xoay hành lang 315° và dung sai 12° được giữ chuẩn mực.
-- Bảo tồn toàn vẹn gói plugin `com.coplaydev.coplay` và cấu hình Unity MCP phục vụ việc đánh giá, chấm điểm.
-- Giữ sạch repo: Không commit các thư mục `Library/`, `Logs/`, `Temp/`, các file nén `.zip`/`.rar`.
+- **Bầu không khí Hoàng Hôn (Sunset Mood):**
+  - Bầu trời chuyển sang sắc tím chạng vạng (`Twilight Indigo`), ánh nắng chiều chiếu xiên màu hổ phách vàng ấm (`Amber Light`).
+  - Hạt bụi hoàng hôn lơ lửng ánh vàng hồng ấm áp.
+- **Cơ chế 3 Ngọn Đèn Lồng Cổ (The 3 Sunset Lanterns):**
+  - Người chơi có nhiệm vụ đánh thức và thắp sáng 3 ngọn đèn lồng nằm ở các góc cao của kiến trúc phố cổ:
+    + **Đèn lồng 1 (Ban công Đông):** Bước từ sân gạch lên ban công Đông. Chạm vào đèn lồng, ngọn lửa ấm bừng sáng kèm hiệu ứng ánh sáng bùng nở và âm báo thành tựu (1/3).
+    + **Đèn lồng 2 (Cầu Không Gian & Ban công Tây):** Đứng trước vực sâu ngăn cách hai bờ đông - tây, người chơi xoay ngôi nhà về góc `BridgeYaw = 135°`. Nhịp cầu không gian (`connect1.fbx`) khớp nối với mép ban công, mở lối bước qua thắp sáng Đèn lồng 2 (2/3).
+    + **Đèn lồng 3 & Tháp Chuông Hoàng Hôn (Sunset Bell Tower):** Xoay nhà về góc `TowerYaw = 225°` để nối liền dải thang lên đỉnh tháp chuông cao nhất.
+- **Đại kết cục Tháp Chuông (Grand Climax & Bell Ringing):**
+  - Nhân vật bước lên đỉnh tháp cao nhất, thắp sáng ngọn đèn thứ 3 và thỉnh quả Chuông Hoàng Hôn.
+  - Chuông đung đưa ngân vang giai điệu hoàng hôn, tỏa sáng rực rỡ khắp toàn cảnh phố cổ.
+  - Màn hình chiến thắng hiện ra cùng 2 lựa chọn tương tác:
+    + **[ CHƠI LẠI CHƯƠNG 2 ]**
+    + **[ ← VỀ CHƯƠNG 1 ]**
+
+---
+
+## 3. Danh mục Kiểm thử & Chất lượng Kỹ thuật
+
+### 3.1. Kết quả Unit Tests (16/16 Tests Passed - 100%)
+- **Chương 1 Tests (12/12):**
+  1. `CabinetBlocksTests.CassetteIsReachableOnlyAtTheSolvedTurns`: Passed.
+  2. `StairSpanTests.PlankMeetsBothStairLipsOnlyInsideTheJoinWindow`: Passed.
+  3. `StoryRulesTests.ClueDoesNotRepeat`: Passed.
+  4. `StoryRulesTests.CorridorAndStairStayInsideTheirOwnTolerance`: Passed.
+  5. `StoryRulesTests.DogFailRestoresTheStartAndKeepsUnlockedRotations`: Passed.
+  6. `StoryRulesTests.PositiveDragFollowsTheHand`: Passed.
+  7. `StoryRulesTests.PresenterColorsAreNotBlackOnBlack`: Passed.
+  8. `StoryRulesTests.RoofOrderWaitsForItsOwnRotation`: Passed.
+  9. `StoryRulesTests.RoofStepStandsOnTheExistingSlope`: Passed.
+  10. `StoryRulesTests.ShippedSeamIsOneWalkOnlyAtTheCorridorYaw`: Passed.
+  11. `StoryRulesTests.SpeakerMovesFromHeldToPlacedOnlyOnThePole`: Passed.
+  12. `StoryRulesTests.YawInsideToleranceOpensTheCorridorAndOutsideDoesNot`: Passed.
+- **Chương 2 Tests (4/4):**
+  13. `Level2RulesTests.BridgeAlignmentOpensOnlyWithinTolerance`: Passed (135° ± 14°).
+  14. `Level2RulesTests.TowerAscentOpensOnlyWithinTolerance`: Passed (225° ± 14°).
+  15. `Level2RulesTests.LanternPropInitialStateIsUnlit`: Passed.
+  16. `Level2RulesTests.Level2PresenterHasValidTotalLanterns`: Passed (3/3 lanterns).
+
+### 3.2. Hiệu năng & Ổn định
+- **Tốc độ khung hình:** 58 - 61 FPS mượt mà ổn định.
+- **Console Log:** 0 Errors, 0 Warnings trong suốt cả 2 lượt playthrough.
+- **Bản Build Standalone:** Thành công 100% không cảnh báo lỗi tại `Builds/PerspectivePuzzle.exe`.
+
+---
+
+## 4. Hướng dẫn Giám khảo / Người chơi Trải nghiệm
+
+1. **Khởi chạy game:**
+   - Mở file thực thi: `Builds/PerspectivePuzzle.exe` (hoặc nhấn Play scene `Assets/Scenes/Level1.unity` trong Unity Editor).
+2. **Điều khiển:**
+   - **Kéo giữ chuột trái và di chuyển ngang:** Xoay kiến trúc ngôi nhà quanh trục trung tâm để tìm góc phối cảnh ăn khớp.
+   - **Click chuột trái:** Di chuyển nhân vật đến điểm mốc (xuất hiện vòng sóng vàng `ClickRipple`).
+   - **Tủ chè:** Click chuột trái để xoay khối; click chuột phải hoặc bấm phím `Esc` để thoát câu đố.
+   - **Chuyển chương nhanh:** Nhấn nút chuyển chương ở góc phải trên màn hình để chuyển đổi qua lại giữa Chương 1 và Chương 2 bất cứ lúc nào.
+   - **Thoát game:** Nhấn phím `Esc` tại màn hình kết thúc.

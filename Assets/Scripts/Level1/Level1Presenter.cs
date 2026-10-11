@@ -72,8 +72,19 @@ namespace PerspectivePuzzle.Level1
             prompt.normal.textColor = soft;
             GUI.color = soft;
             GUI.Label(new Rect(width * 0.12f, height * 0.36f + 150f, width * 0.76f, 40f), endLine, prompt);
-            if (b >= 1f)
+            if (b >= 0.8f)
             {
+                float btnW = 440f;
+                float btnH = 54f;
+                Rect btnRect = new Rect((width - btnW) * 0.5f, height * 0.36f + 210f, btnW, btnH);
+                Plate(btnRect);
+                Color btnInk = new Color(0.96f, 0.82f, 0.35f, 1f);
+                prompt.normal.textColor = btnInk;
+                if (GUI.Button(btnRect, "CHƯƠNG 2: HÀ NỘI HOÀNG HÔN  →", prompt))
+                {
+                    UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
+                }
+
                 Color faint = new Color(0.7f, 0.7f, 0.66f, 0.7f);
                 small.normal.textColor = faint;
                 small.alignment = TextAnchor.MiddleCenter;
@@ -156,6 +167,13 @@ namespace PerspectivePuzzle.Level1
             {
                 Plate(new Rect(width - 560f, 18f, 530f, 32f));
                 GUI.Label(new Rect(width - 548f, 20f, 506f, 28f), performance, small);
+            }
+
+            Rect chapRect = new Rect(width - 240f, 56f, 216f, 30f);
+            Plate(chapRect);
+            if (GUI.Button(chapRect, "Chương 2: Hoàng Hôn  →", small))
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
             }
 
             GUI.matrix = saved;

@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using PerspectivePuzzle.Audio;
 using PerspectivePuzzle.Movement;
 using PerspectivePuzzle.Puzzle;
+using PerspectivePuzzle.Visual;
 using UnityEngine;
 
 namespace PerspectivePuzzle.Level1
@@ -171,6 +173,8 @@ namespace PerspectivePuzzle.Level1
         {
             if (player != null)
                 player.Arrived += OnArrived;
+            if (board != null)
+                board.AlignmentChanged += OnAlignmentChanged;
         }
 
         void Start()
@@ -208,6 +212,13 @@ namespace PerspectivePuzzle.Level1
                 cabinet.SetSpeakerReady(false);
             StyleCassette();
             ResolveHand();
+
+            Transform root = BuildingRoot();
+            if (root != null)
+                AtmosphericDust.Create(root, new Color(0.95f, 0.82f, 0.55f, 0.6f));
+            if (GameAudio.Instance != null)
+                GameAudio.Instance.PlayAmbience();
+
             StartCoroutine(Intro());
         }
 
@@ -215,6 +226,14 @@ namespace PerspectivePuzzle.Level1
         {
             if (player != null)
                 player.Arrived -= OnArrived;
+            if (board != null)
+                board.AlignmentChanged -= OnAlignmentChanged;
+        }
+
+        void OnAlignmentChanged(bool opened)
+        {
+            if (opened && GameAudio.Instance != null)
+                GameAudio.Instance.PlayAlign();
         }
 
         void Update()
@@ -288,6 +307,10 @@ namespace PerspectivePuzzle.Level1
             }
             if (!Physics.Raycast(ray, out RaycastHit hit, 800f))
                 return;
+
+            ClickRipple.Spawn(hit.point, new Color(0.95f, 0.78f, 0.35f, 0.85f));
+            if (GameAudio.Instance != null)
+                GameAudio.Instance.PlayClick();
 
             RoomInteractable prop = hit.collider.GetComponentInParent<RoomInteractable>();
             if (prop != null)
@@ -656,6 +679,8 @@ namespace PerspectivePuzzle.Level1
             }
 
             StartCoroutine(RunDog());
+            if (GameAudio.Instance != null)
+                GameAudio.Instance.PlayDogBark();
             ClipActor actor = player != null ? player.GetComponent<ClipActor>() : null;
             if (actor != null)
                 actor.PlayFall();
