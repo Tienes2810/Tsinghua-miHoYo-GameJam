@@ -66,7 +66,7 @@ namespace PerspectivePuzzle.Level1
         static readonly string[] FSteps = { "EF1", "EF2" };
         static readonly string[] LSteps = { "EF2", "EF1" };
         static readonly string[] GSteps = { "LG1", "LipE", "LipW" };
-        static readonly Vector3 DogRest = new Vector3(-5.80f, 5.34f, 6.30f);
+        static readonly Vector3 DogRest = new Vector3(3.60f, 5.34f, 4.80f);
 
         static string[] BuildLowerSteps()
         {
@@ -981,7 +981,7 @@ namespace PerspectivePuzzle.Level1
             {
                 // Dog Trigger of the old route is off. The dog stays in the house, away from the stair.
                 target = DogRest;
-                face = Vector3.left;
+                face = Vector3.back;
             }
             else
             {
@@ -1000,9 +1000,9 @@ namespace PerspectivePuzzle.Level1
 
             Vector3 now = dogPatrol.localPosition;
             float far = Vector3.Distance(now, target);
-            if (spawned || far > 3f && safe)
+            if (spawned || safe)
             {
-                // Out of sight behind the stair wall; do not slide through the house.
+                // Out of sight behind the stair wall; do not slide through the air or house.
                 dogPatrol.localPosition = target;
             }
             else
