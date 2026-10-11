@@ -8,6 +8,7 @@ namespace PerspectivePuzzle.Audio
 
         AudioSource musicSource;
         AudioSource sfxSource;
+        AudioSource stepSource;
 
         AudioClip bgAmbience;
         AudioClip navTouch;
@@ -48,7 +49,13 @@ namespace PerspectivePuzzle.Audio
             sfxSource.loop = false;
             sfxSource.playOnAwake = false;
             sfxSource.spatialBlend = 0f;
-            sfxSource.volume = 0.85f;
+            sfxSource.volume = 0.80f;
+
+            stepSource = gameObject.AddComponent<AudioSource>();
+            stepSource.loop = false;
+            stepSource.playOnAwake = false;
+            stepSource.spatialBlend = 0f;
+            stepSource.volume = 0.50f;
 
             LoadClips();
             PlayAmbience();
@@ -117,8 +124,10 @@ namespace PerspectivePuzzle.Audio
 
         public void PlayStep()
         {
-            // Soft subtle footsteps
-            PlaySfx(buttonTouch, 0.18f, Random.Range(1.3f, 1.6f));
+            if (buttonTouch == null || stepSource == null)
+                return;
+            stepSource.pitch = Random.Range(1.2f, 1.4f);
+            stepSource.PlayOneShot(buttonTouch, 0.12f);
         }
 
         void PlaySfx(AudioClip clip, float volume, float pitch)
@@ -126,7 +135,7 @@ namespace PerspectivePuzzle.Audio
             if (clip == null || sfxSource == null)
                 return;
             sfxSource.pitch = pitch;
-            sfxSource.PlayOneShot(clip, volume);
+            sfxSource.PlayOneShot(clip, volume * 0.8f);
         }
     }
 }

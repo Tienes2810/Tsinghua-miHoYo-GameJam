@@ -204,8 +204,28 @@ namespace PerspectivePuzzle.Level2
 
             if (State == Phase.Intro)
             {
-                if (Time.time > 0.6f && (GameInput.GetMouseButtonDown(0) || GameInput.anyKeyDown) && !Hud.OverUi(m))
+                if (Hud != null && Hud.ShowControlsModal)
+                {
+                    if (GameInput.GetKeyDown(KeyCode.Escape) || GameInput.GetKeyDown(KeyCode.H))
+                    {
+                        Hud.ShowControlsModal = false;
+                        GameAudio.Instance?.PlayClick();
+                    }
+                    return;
+                }
+
+                if (GameInput.GetKeyDown(KeyCode.H))
+                {
+                    if (Hud != null) Hud.ShowControlsModal = true;
+                    GameAudio.Instance?.PlayClick();
+                    return;
+                }
+
+                if (Time.time > 0.6f && (GameInput.GetKeyDown(KeyCode.Return) || GameInput.GetKeyDown(KeyCode.KeypadEnter) || GameInput.GetKeyDown(KeyCode.Space)))
+                {
                     BeginPlay();
+                    return;
+                }
                 return;
             }
 
@@ -579,10 +599,6 @@ namespace PerspectivePuzzle.Level2
                         if (LanternsLit >= 2)
                             ShowCaption("From exactly the right angle, the old pagoda was only one step away.", 5f);
                     }
-                    else
-                    {
-                        GameAudio.Instance?.PlayDoor();
-                    }
                 });
         }
 
@@ -649,7 +665,7 @@ namespace PerspectivePuzzle.Level2
         // Progression
         // =====================================================================
 
-        void BeginPlay()
+        public void BeginPlay()
         {
             State = Phase.Play;
             StartedAt = Time.time;
@@ -739,16 +755,15 @@ namespace PerspectivePuzzle.Level2
                 bell.DOLocalRotate(new Vector3(0f, 0f, 22f), 0.35f).SetEase(Ease.OutSine).SetLoops(8, LoopType.Yoyo).SetTarget(this)
                     .OnComplete(() => bell.localRotation = Quaternion.identity);
             }
-            GameAudio.Instance?.PlayDoor();
+            GameAudio.Instance?.PlayAlign();
             SpawnSkyLanterns(26);
             yield return new WaitForSeconds(3.2f);
-            ShowCaption("Hà Nội lại rực rỡ lên đèn. Đâu đó tiếng loa phường rè rè: \"Cơm chín rồi, về nhà thôi!\"\nHanoi lights up once more. A loudspeaker crackles: \"Dinner's ready — come home!\"", 6.5f);
+            ShowCaption("Hà Nội lại rực rỡ lên đèn. Đâu đó tiếng loa phường vang lên: \"Cơm chín rồi, về nhà thôi!\"\nHanoi lights up once more. A loudspeaker resonates: \"Dinner's ready — come home!\"", 6.5f);
             focusTarget = Vector3.up * 1.6f;
             sizeScale = 1.05f;
             yield return new WaitForSeconds(4.2f);
             State = Phase.End;
             EndAt = Time.time;
-            GameAudio.Instance?.PlaySuccess();
         }
 
         public void Restart()

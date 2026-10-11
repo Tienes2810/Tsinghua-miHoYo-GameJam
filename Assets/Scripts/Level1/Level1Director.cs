@@ -88,6 +88,7 @@ namespace PerspectivePuzzle.Level1
         bool gLinked;
         Transform stairFlight;
         bool stairFlipped;
+        bool isStairFlipping;
         public bool StairFlipped => stairFlipped;
 
         public string performanceBase;
@@ -114,6 +115,21 @@ namespace PerspectivePuzzle.Level1
         public bool CapturePointer => phase == Level1Phase.Intro || PuzzleOpen;
         public bool AllowRotate => !PuzzleOpen && phase != Level1Phase.Intro && phase != Level1Phase.Ending
             && player != null && !player.IsMoving && !player.MovementLocked;
+
+        public PlayerMovement Player => player;
+        public PathNode NodeA => nodeA;
+        public PathNode NodeB => nodeB;
+        public PathNode NodeC => nodeC;
+        public PathNode NodeSpeaker => nodeSpeaker;
+        public PathNode NodeDoor => nodeDoor;
+        public PathNode NodeDog => nodeDog;
+        public PathNode NodeE => nodeE;
+        public PathNode NodeF => nodeF;
+        public PathNode NodeI => nodeI;
+        public PathNode NodeL => nodeL;
+        public PathNode NodeG => nodeG;
+        public PathNode NodeM => nodeM;
+        public PathNode NodePole => nodePole;
 
         public void Bind(
             PlayerMovement mover,
@@ -188,7 +204,7 @@ namespace PerspectivePuzzle.Level1
         void Start()
         {
             if (rotator != null)
-                rotator.transform.rotation = Quaternion.identity;
+                rotator.transform.rotation = Quaternion.Euler(0f, StoryProgress.StairYaw, 0f);
             CorridorBridge.Align(nodeA, nodeB, nodeC, nodeSpeaker, nodeDoor, roomFocus, cabinet);
             CacheClimb();
             BuildStairFlight();
@@ -426,7 +442,7 @@ namespace PerspectivePuzzle.Level1
                 Pickup();
             else if ((phase == Level1Phase.ToExit || phase == Level1Phase.Carrying) && node == nodeDoor)
                 EnterRound2();
-            else if (node == nodeDog && story.Speaker == SpeakerPhase.Held && !story.StairOpen(CurrentYaw()))
+            else if (node == nodeDog && story.Speaker == SpeakerPhase.Held && !stairFlipped)
                 StartCoroutine(DogFall());
             else if (node == nodeM || node == nodePole)
                 FinishRoof(node);
@@ -946,10 +962,11 @@ namespace PerspectivePuzzle.Level1
             if (source == null)
                 source = gameObject.AddComponent<AudioSource>();
             source.spatialBlend = 0f;
+            source.volume = 0.85f;
             AudioClip clip = Resources.Load<AudioClip>("Audio/morning_broadcast");
             if (clip == null)
                 clip = RadioStinger.Create();
-            source.PlayOneShot(clip);
+            source.PlayOneShot(clip, 0.85f);
             return clip != null ? clip.length : 5.0f;
         }
 
@@ -969,7 +986,7 @@ namespace PerspectivePuzzle.Level1
         bool DogTrapLive(float yaw)
         {
             bool held = story.Speaker == SpeakerPhase.Held;
-            return held && Round2Stair() && story.RoofReached == 0 && !stairFlipped && !story.StairOpen(yaw);
+            return held && Round2Stair() && story.RoofReached == 0 && !stairFlipped;
         }
 
         void WalkDog()
@@ -987,6 +1004,10 @@ namespace PerspectivePuzzle.Level1
                 dogPatrol = MakeDog("DogPatrol", root);
             dogPatrol.gameObject.SetActive(true);
 
+            // While the staircase is actively flipping, the dog is parented to stairFlight and rotates with it!
+            if (isStairFlipping)
+                return;
+
             Vector3 target;
             Vector3 face;
             Vector3 upVec = Vector3.up;
@@ -1002,33 +1023,27 @@ namespace PerspectivePuzzle.Level1
                 int i1 = Mathf.Min(i0 + 1, 8);
                 Vector3 a = CorridorBridge.UpperTread(i0);
                 Vector3 b = CorridorBridge.UpperTread(i1);
-                Vector3 inclineNormal = new Vector3(0f, 0.8575f, 0.5145f);
-                target = Vector3.Lerp(a, b, along - i0) - inclineNormal * 0.40f - Vector3.up * 0.18f;
+                Vector3 topPos = Vector3.Lerp(a, b, along - i0);
+                target = new Vector3(topPos.x, topPos.y - 0.90f, topPos.z);
                 face = loop <= 7f ? Vector3.back : Vector3.forward;
-                // Upside-down orientation: up vector points into underside of treads!
-                upVec = -inclineNormal;
+                // Upside-down orientation: paws against underside of stairs, hanging downwards
+                upVec = Vector3.down;
             }
             else
             {
-                bool safe = story.StairOpen(CurrentYaw()) || story.RoofReached > 0;
-                if (safe)
-                {
-                    target = DogRest;
-                    face = Vector3.back;
-                }
-                else
-                {
-                    dogWalk += Time.deltaTime * 1.2f;
-                    const float span = 14f;
-                    float loop = dogWalk % span;
-                    float along = 1f + (loop <= 7f ? loop : span - loop);
-                    int i0 = Mathf.Clamp(Mathf.FloorToInt(along), 1, 8);
-                    int i1 = Mathf.Min(i0 + 1, 8);
-                    Vector3 a = CorridorBridge.UpperTread(i0) - Vector3.up * 0.04f;
-                    Vector3 b = CorridorBridge.UpperTread(i1) - Vector3.up * 0.04f;
-                    target = Vector3.Lerp(a, b, along - i0);
-                    face = loop <= 7f ? Vector3.back : Vector3.forward;
-                }
+                // Dog patrols on the TOP of the stairs, blocking the way!
+                // It NEVER disappears just because the map rotated!
+                dogWalk += Time.deltaTime * 1.2f;
+                const float span = 14f;
+                float loop = dogWalk % span;
+                float along = 1f + (loop <= 7f ? loop : span - loop);
+                int i0 = Mathf.Clamp(Mathf.FloorToInt(along), 1, 8);
+                int i1 = Mathf.Min(i0 + 1, 8);
+                Vector3 a = CorridorBridge.UpperTread(i0) - Vector3.up * 0.04f;
+                Vector3 b = CorridorBridge.UpperTread(i1) - Vector3.up * 0.04f;
+                target = Vector3.Lerp(a, b, along - i0);
+                face = loop <= 7f ? Vector3.back : Vector3.forward;
+                upVec = Vector3.up;
             }
 
             dogPatrol.localPosition = target;
@@ -1075,8 +1090,9 @@ namespace PerspectivePuzzle.Level1
             }
             ShowNode(nodeDog, !stairFlipped && trap && !dogBusy);
             string next = story.NextRoof;
-            bool openPoint = climbing && next != null && story.RoofPointOpen(next, yaw);
-            if (openPoint)
+            // Point E requires the stair to be flipped first! Other points (F, I, L, G, M) open with yaw.
+            bool openPoint = climbing && next != null && (next == "E" ? stairFlipped : story.RoofPointOpen(next, yaw));
+            if (openPoint && next != "E")
             {
                 LinkRoof(next);
                 ShowNode(RoofNode(next), true);
@@ -1107,7 +1123,7 @@ namespace PerspectivePuzzle.Level1
         {
             if (dogBusy || player == null || nodeDog == null || player.CurrentNode != nodeDog)
                 return;
-            if (stairFlipped || story.Speaker != SpeakerPhase.Held || story.StairOpen(CurrentYaw()))
+            if (stairFlipped || story.Speaker != SpeakerPhase.Held)
                 return;
             if (phase != Level1Phase.Round2 && phase != Level1Phase.NeedStair && phase != Level1Phase.ToRoof
                 && phase != Level1Phase.ToExit)
@@ -1125,46 +1141,48 @@ namespace PerspectivePuzzle.Level1
             Transform root = BuildingRoot();
             if (root == null)
                 return;
-            Transform existing = root.Find("CauThang2_Flight");
+
+            Transform house = root.Find("House");
+            Transform ct2 = house != null ? house.Find("CauThang2") : null;
+            if (ct2 == null)
+            {
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name == "CauThang2")
+                    {
+                        ct2 = t;
+                        break;
+                    }
+                }
+            }
+
+            if (ct2 == null)
+                return;
+
+            Transform existing = ct2.parent != null && ct2.parent.name == "CauThang2_Pivot" ? ct2.parent : null;
             if (existing != null)
             {
                 stairFlight = existing;
                 return;
             }
 
-            var flightGo = new GameObject("CauThang2_Flight");
-            stairFlight = flightGo.transform;
-            stairFlight.SetParent(root, false);
-            Vector3 pMid = new Vector3(1.60f, 6.59f, 3.62f);
-            stairFlight.localPosition = pMid;
+            // Create pivot exactly at the center of the white staircase (CauThang2)
+            var pivotGo = new GameObject("CauThang2_Pivot");
+            stairFlight = pivotGo.transform;
+            stairFlight.SetParent(ct2.parent, false);
 
-            // Box collider covering the flight so clicks hit the staircase
-            var col = flightGo.AddComponent<BoxCollider>();
-            col.center = Vector3.zero;
-            col.size = new Vector3(1.3f, 1.2f, 5.0f);
+            Renderer rend = ct2.GetComponent<Renderer>();
+            Vector3 worldCenter = rend != null ? rend.bounds.center : ct2.position;
+            stairFlight.position = worldCenter;
 
-            // Step treads on the flippable flight
-            Material stairMat = Resources.Load<Material>("Mat_Stair");
-#if UNITY_EDITOR
-            if (stairMat == null)
-                stairMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Materials/Mat_Stair.mat");
-#endif
-            for (int j = 0; j <= 8; j++)
+            // Reparent the real white staircase into the pivot so it flips itself directly
+            ct2.SetParent(stairFlight, true);
+
+            // Add click collider directly to the white staircase
+            if (ct2.GetComponent<Collider>() == null)
             {
-                var step = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                step.name = "Tread_" + j;
-                step.transform.SetParent(stairFlight, false);
-                Vector3 worldPos = CorridorBridge.UpperTread(j);
-                step.transform.localPosition = worldPos - pMid;
-                step.transform.localScale = new Vector3(0.92f, 0.22f, 0.48f);
-                var stepCol = step.GetComponent<Collider>();
-                if (stepCol != null) Destroy(stepCol);
-                var rend = step.GetComponent<Renderer>();
-                if (rend != null)
-                {
-                    if (stairMat != null) rend.sharedMaterial = stairMat;
-                    else rend.material.color = new Color(0.78f, 0.72f, 0.62f);
-                }
+                var col = ct2.gameObject.AddComponent<MeshCollider>();
+                col.convex = false;
             }
         }
 
@@ -1172,16 +1190,33 @@ namespace PerspectivePuzzle.Level1
         {
             if (player != null && player.IsMoving)
                 return;
+            if (isStairFlipping)
+                return;
 
             stairFlipped = !stairFlipped;
             if (stairFlight != null)
             {
-                Vector3 inclineAxis = new Vector3(0f, 2.40f, -4.00f).normalized;
                 Quaternion targetRot = stairFlipped
-                    ? Quaternion.AngleAxis(180f, inclineAxis)
+                    ? Quaternion.Euler(180f, 0f, 0f)
                     : Quaternion.identity;
+
+                // Reparent dog so it physically tumbles and flips with the stairs!
+                if (dogPatrol != null)
+                {
+                    dogPatrol.SetParent(stairFlight, true);
+                    isStairFlipping = true;
+                }
+
                 stairFlight.DOKill();
-                stairFlight.DOLocalRotateQuaternion(targetRot, 0.65f).SetEase(Ease.InOutSine);
+                stairFlight.DOLocalRotateQuaternion(targetRot, 0.75f).SetEase(Ease.InOutSine).OnComplete(() =>
+                {
+                    isStairFlipping = false;
+                    if (dogPatrol != null)
+                    {
+                        dogPatrol.SetParent(BuildingRoot(), true);
+                    }
+                    ObserveYaw();
+                });
             }
 
             if (GameAudio.Instance != null)
@@ -1189,7 +1224,7 @@ namespace PerspectivePuzzle.Level1
 
             if (stairFlipped)
             {
-                Say("Cầu thang đã lật ngược! Chú chó giờ đang đi ở mặt dưới, lối đi phía trên đã hoàn toàn thông thoáng!\nThe stairs flipped! The dog is now walking underneath, clearing the upper path.", 3.8f);
+                Say("Cầu thang đã lật ngược! Chú chó giờ đang bám ở mặt dưới, lối đi phía trên đã hoàn toàn thông thoáng!\nThe stairs flipped! The dog is now clinging underneath, clearing the upper path.", 4.0f);
                 if (presenter != null)
                 {
                     presenter.hint = "Bước lên cầu thang về phía sân thượng · Walk up the stairs to the rooftop";

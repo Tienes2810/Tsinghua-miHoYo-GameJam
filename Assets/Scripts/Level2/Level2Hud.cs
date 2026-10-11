@@ -37,11 +37,25 @@ namespace PerspectivePuzzle.Level2
             return false;
         }
 
+        public bool ShowControlsModal;
+
         void Update()
         {
             if (GameInput.GetKeyDown(KeyCode.F11) || ((GameInput.GetKey(KeyCode.LeftAlt) || GameInput.GetKey(KeyCode.RightAlt)) && GameInput.GetKeyDown(KeyCode.Return)))
             {
                 ScreenUtils.ToggleFullscreen();
+            }
+
+            if (GameInput.GetKeyDown(KeyCode.H))
+            {
+                ShowControlsModal = !ShowControlsModal;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            if (ShowControlsModal && GameInput.GetKeyDown(KeyCode.Escape))
+            {
+                ShowControlsModal = false;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
             }
         }
 
@@ -137,34 +151,160 @@ namespace PerspectivePuzzle.Level2
                     break;
             }
 
+            if (ShowControlsModal)
+            {
+                DrawControlsModal(w, h);
+            }
+
             GUI.matrix = saved;
         }
 
         void DrawIntro(Level2Game g, float w, float h)
         {
+            // Dark vignette background over the sunset diorama
             Color prev = GUI.color;
-            GUI.color = new Color(1f, 1f, 1f, 0.92f);
-            GUI.DrawTexture(new Rect(0, h * 0.4f, w, h * 0.6f), vignette, ScaleMode.StretchToFill);
+            GUI.color = new Color(0.04f, 0.045f, 0.055f, 0.94f);
+            GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
             GUI.color = prev;
 
-            float a = Mathf.Clamp01(Time.time / 1.2f);
-            Paint(smallStyle, new Color(GoldInk.r, GoldInk.g, GoldInk.b, a));
+            float centerX = w * 0.5f;
+            float topY = Mathf.Max(30f, h * 0.10f);
+
+            // Jam Header
+            Paint(smallStyle, GoldInk);
             smallStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(0, h * 0.6f, w, 30), "CHƯƠNG 1  ·  CHAPTER 1", smallStyle);
-            Paint(bigStyle, new Color(Ink.r, Ink.g, Ink.b, a));
-            GUI.Label(new Rect(0, h * 0.63f, w, 90), "Hà Nội Hoàng Hôn", bigStyle);
-            Paint(titleStyle, new Color(Ink.r, Ink.g, Ink.b, a * 0.9f));
-            titleStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(0, h * 0.63f + 86, w, 34), "Hanoi at Dusk", titleStyle);
-            Paint(bodyStyle, new Color(Ink.r, Ink.g, Ink.b, a * 0.85f));
-            GUI.Label(new Rect(w * 0.15f, h * 0.63f + 124, w * 0.70f, 70),
+            GUI.Label(new Rect(0, topY, w, 28), "TSINGHUA UNIVERSITY  ×  MIHOYO GAME JAM 2026", smallStyle);
+
+            // Title
+            Paint(bigStyle, Ink);
+            GUI.Label(new Rect(0, topY + 34, w, 70), "HỒI ỨC PHỐ CŨ", bigStyle);
+
+            // Subtitle
+            Paint(smallStyle, new Color(0.85f, 0.85f, 0.80f, 0.9f));
+            GUI.Label(new Rect(0, topY + 104, w, 28), "CHƯƠNG 1: HÀ NỘI HOÀNG HÔN  ·  CHAPTER 1: HANOI AT DUSK", smallStyle);
+
+            // Gold divider
+            Fill(new Rect(centerX - 180f, topY + 138f, 360f, 2f), GoldInk * new Color(1, 1, 1, 0.5f));
+
+            // Story Description
+            Paint(bodyStyle, new Color(Ink.r, Ink.g, Ink.b, 0.9f));
+            GUI.Label(new Rect(centerX - 380f, topY + 150f, 760f, 54f),
                 "Thang máy đỏ, nhịp cầu xoay, và góc nhìn ảo ảnh đưa lối về phố cổ.\nRide the red lift, turn the bridge, and find the impossible path through the old quarter.", bodyStyle);
-            float blink = 0.55f + 0.45f * Mathf.Sin(Time.time * 3f);
-            Paint(titleStyle, new Color(GoldInk.r, GoldInk.g, GoldInk.b, a * blink));
-            GUI.Label(new Rect(0, h - 70, w, 36), "Nhấn bất kỳ để bắt đầu  ·  Click anywhere to begin", titleStyle);
-            titleStyle.alignment = TextAnchor.MiddleLeft;
+
+            // 1. Start Game Button
+            float btnW = 460f;
+            float btnH = 56f;
+            float curY = topY + 220f;
+            Rect startRect = new Rect(centerX - btnW * 0.5f, curY, btnW, btnH);
+            if (Button(startRect, "▶  BẮT ĐẦU CHƠI  /  START GAME", new Color(0.55f, 0.16f, 0.12f, 0.95f)))
+            {
+                g.BeginPlay();
+            }
+
+            // 2. Fullscreen Button
+            curY += 66f;
+            Rect fsRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 46f);
+            string fsLabel = ScreenUtils.IsFullscreen ? "🗗  CỬA SỔ  /  WINDOWED (F11)" : "⛶  TOÀN MÀN HÌNH  /  FULLSCREEN (F11)";
+            if (Button(fsRect, fsLabel, Plate))
+            {
+                ScreenUtils.ToggleFullscreen();
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            // 3. Controls Guide Button
+            curY += 56f;
+            Rect helpRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 46f);
+            if (Button(helpRect, "📖  HƯỚNG DẪN  ·  CONTROLS GUIDE (H)", Plate))
+            {
+                ShowControlsModal = true;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            // 4. Chapter 2 shortcut button
+            curY += 56f;
+            Rect chapRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 40f);
+            if (Button(chapRect, "Sang Chương 2 / Chapter 2 →", Plate))
+            {
+                g.GoToChapter2();
+            }
+
+            // Bottom controls strip
+            float infoW = Mathf.Min(840f, w - 60f);
+            float infoH = 68f;
+            Rect infoRect = new Rect(centerX - infoW * 0.5f, h - infoH - 24f, infoW, infoH);
+            Fill(infoRect, Plate);
+            Fill(new Rect(infoRect.x, infoRect.yMax - 3f, infoRect.width, 3f), GoldInk * new Color(1, 1, 1, 0.8f));
+
+            if (GUI.Button(infoRect, GUIContent.none, GUIStyle.none))
+            {
+                ShowControlsModal = true;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
             smallStyle.alignment = TextAnchor.MiddleLeft;
-            DrawTopButtons(g, w, false);
+            Paint(smallStyle, GoldInk);
+            GUI.Label(new Rect(infoRect.x + 20f, infoRect.y + 8f, infoW - 40f, 22f), "HƯỚNG DẪN ĐIỀU KHIỂN  ·  CONTROLS (Click xem chi tiết / Full guide)", smallStyle);
+
+            Paint(smallStyle, new Color(0.88f, 0.88f, 0.85f, 0.90f));
+            string guideSummary = "• Click: Đi / Walk  ·  Kéo / Drag: Xoay phố, thang máy & cầu / Rotate diorama & lifts  ·  F11: Toàn màn hình\n" +
+                                  "• Nhấn phím H hoặc click ô này để mở bảng hướng dẫn chi tiết / Press H for full guide";
+            GUI.Label(new Rect(infoRect.x + 20f, infoRect.y + 30f, infoW - 40f, 32f), guideSummary, smallStyle);
+        }
+
+        void DrawControlsModal(float w, float h)
+        {
+            // Dim background behind modal
+            Color prev = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.78f);
+            GUI.DrawTexture(new Rect(0f, 0f, w, h), Texture2D.whiteTexture);
+            GUI.color = prev;
+
+            float modalW = Mathf.Min(820f, w - 60f);
+            float modalH = 390f;
+            Rect modalRect = new Rect((w - modalW) * 0.5f, (h - modalH) * 0.5f, modalW, modalH);
+
+            Fill(modalRect, Plate);
+            Fill(new Rect(modalRect.x, modalRect.yMax - 4f, modalRect.width, 4f), GoldInk);
+
+            // Modal Header
+            Paint(titleStyle, GoldInk);
+            titleStyle.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(modalRect.x, modalRect.y + 16f, modalW, 28f), "📖  HƯỚNG DẪN ĐIỀU KHIỂN  ·  CONTROLS GUIDE", titleStyle);
+
+            // Modal Body Rows
+            float rowY = modalRect.y + 54f;
+            float rowH = 46f;
+            float padX = modalRect.x + 28f;
+            float contentW = modalW - 56f;
+
+            string[,] rows = {
+                { "🖱️  ĐI LẠI  /  WALK", "Click chuột trái vào các ô vuông hoặc điểm đường để nhân vật di chuyển.\nLeft-click reachable path nodes to walk." },
+                { "🔄  XOAY GÓC NHÌN  /  ROTATE", "Kéo chuột ngang trên nền trời (hoặc phím Q / E) để xoay phố cổ.\nDrag horizontally on the sky or press Q / E to rotate the diorama." },
+                { "🏗️  THANG MÁY & CẦU  /  LIFTS", "Kéo hoặc click các cơ cấu màu đỏ để nâng hạ thang máy hoặc xoay nhịp cầu.\nDrag or click red mechanisms to move the lift or rotate the bridge." },
+                { "📐  ẢO ẢNH  /  PERSPECTIVE", "Xoay góc nhìn đến khi các con đường rời rạc nối liền mạch nhau.\nRotate the view until impossible optical paths seamlessly align!" },
+                { "⌨️  PHÍM TẮT  /  SHORTCUTS", "F11: Toàn màn hình (Fullscreen)  ·  R: Chơi lại (Restart)  ·  H: Bật/Tắt hướng dẫn" }
+            };
+
+            smallStyle.alignment = TextAnchor.MiddleLeft;
+            for (int i = 0; i < 5; i++)
+            {
+                Fill(new Rect(padX, rowY + i * (rowH + 6f), contentW, rowH), new Color(0f, 0f, 0f, 0.25f));
+                Paint(smallStyle, GoldInk);
+                GUI.Label(new Rect(padX + 10f, rowY + i * (rowH + 6f) + 4f, 230f, 38f), rows[i, 0], smallStyle);
+
+                Paint(smallStyle, new Color(0.92f, 0.92f, 0.90f, 0.95f));
+                GUI.Label(new Rect(padX + 246f, rowY + i * (rowH + 6f) + 4f, contentW - 256f, 38f), rows[i, 1], smallStyle);
+            }
+
+            // Close button
+            float closeW = 260f;
+            float closeH = 42f;
+            Rect closeRect = new Rect(modalRect.x + (modalW - closeW) * 0.5f, modalRect.y + modalH - closeH - 14f, closeW, closeH);
+            if (Button(closeRect, "×  ĐÓNG  /  CLOSE (Esc)", new Color(0.55f, 0.16f, 0.12f, 0.95f)))
+            {
+                ShowControlsModal = false;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
         }
 
         void DrawPlay(Level2Game g, float w, float h)
@@ -253,13 +393,18 @@ namespace PerspectivePuzzle.Level2
         void DrawTopButtons(Level2Game g, float w, bool withRestart)
         {
             float y = withRestart ? 84f : 22f;
-            float btnW = 300f;
-            if (Button(new Rect(w - (btnW + 24f), y, btnW, 40f), "Tiếp tục: Chương 2 → / Chapter 2 →", Plate))
+            float btnW = 310f;
+            if (Button(new Rect(w - (btnW + 24f), y, btnW, 38f), "Tiếp tục: Chương 2 → / Chapter 2 →", Plate))
                 g.GoToChapter2();
-            if (withRestart && Button(new Rect(w - (btnW + 24f), y + 48f, btnW, 40f), "Chơi lại / Restart  (R)", Plate))
+            if (withRestart && Button(new Rect(w - (btnW + 24f), y + 44f, btnW, 38f), "Chơi lại / Restart  (R)", Plate))
                 g.Restart();
+            if (Button(new Rect(w - (btnW + 24f), y + (withRestart ? 88f : 44f), btnW, 38f), "📖 Hướng dẫn / Guide (H)", Plate))
+            {
+                ShowControlsModal = !ShowControlsModal;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
             string fsLabel = ScreenUtils.IsFullscreen ? "🗗 Cửa sổ / Window (F11)" : "⛶ Toàn màn hình / Fullscreen (F11)";
-            if (Button(new Rect(w - (btnW + 24f), y + (withRestart ? 96f : 48f), btnW, 40f), fsLabel, Plate))
+            if (Button(new Rect(w - (btnW + 24f), y + (withRestart ? 132f : 88f), btnW, 38f), fsLabel, Plate))
                 ScreenUtils.ToggleFullscreen();
         }
 

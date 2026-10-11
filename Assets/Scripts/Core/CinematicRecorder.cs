@@ -75,6 +75,12 @@ namespace PerspectivePuzzle
         void OnDestroy()
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
+            var listeners = FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
+            foreach (var al in listeners)
+            {
+                if (al != null && al.gameObject != gameObject)
+                    al.enabled = true;
+            }
         }
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -407,20 +413,39 @@ namespace PerspectivePuzzle
             // ==========================================
             // CHƯƠNG 1: HÀ NỘI HOÀNG HÔN / LEVEL 2
             // ==========================================
-            Status = "Chapter 1: Hanoi Sunset...";
-            yield return MoveMouse(center, 0.7f);
-            yield return new WaitForSeconds(2.8f);
-
+            Status = "Game Start: Showing Title & Start Menu...";
             var g = Level2Game.Instance;
             Camera cam2 = g != null ? g.View : Camera.main;
+            var hud2 = g != null ? g.Hud : FindAnyObjectByType<Level2Hud>();
 
-            // Dismiss intro dialogs slowly
-            for (int i = 0; i < 5 && g != null && g.State == Level2Game.Phase.Intro; i++)
-            {
-                yield return VisualClickGui(new Vector2(Screen.width * 0.5f, Screen.height * 0.45f));
-                yield return new WaitForSeconds(1.5f);
-            }
-            yield return new WaitForSeconds(1.6f);
+            float scaleL2 = Mathf.Max(0.7f, Screen.height / 1080f);
+            float hL2 = Screen.height / scaleL2;
+            float topYL2 = Mathf.Max(30f, hL2 * 0.10f);
+
+            yield return MoveMouse(center, 0.8f);
+            yield return new WaitForSeconds(2.0f);
+
+            // 1. Click Controls Guide button on the Start Menu
+            Status = "Opening Controls Guide...";
+            Vector2 helpBtnL2 = new Vector2(center.x, (topYL2 + 220f + 66f + 56f + 23f) * scaleL2);
+            yield return VisualClickGui(helpBtnL2);
+            if (hud2 != null) hud2.ShowControlsModal = true;
+            yield return new WaitForSeconds(2.8f);
+
+            // 2. Click Close button on Controls Modal
+            float modalHL2 = 390f;
+            float modalYL2 = (hL2 - modalHL2) * 0.5f;
+            Vector2 closeBtnL2 = new Vector2(center.x, (modalYL2 + modalHL2 - 42f - 14f + 21f) * scaleL2);
+            yield return VisualClickGui(closeBtnL2);
+            if (hud2 != null) hud2.ShowControlsModal = false;
+            yield return new WaitForSeconds(1.2f);
+
+            // 3. Click [ ▶ BẮT ĐẦU CHƠI / START GAME ] button
+            Status = "Starting Chapter 1: Hanoi Sunset...";
+            Vector2 startBtnL2 = new Vector2(center.x, (topYL2 + 220f + 28f) * scaleL2);
+            yield return VisualClickGui(startBtnL2);
+            if (g != null && g.State == Level2Game.Phase.Intro) g.BeginPlay();
+            yield return new WaitForSeconds(2.0f);
 
             // Step 1: Walk to lift
             Status = "Chapter 1: Walking onto lift...";
@@ -468,11 +493,15 @@ namespace PerspectivePuzzle
             while (g.Player.IsMoving) yield return null;
             yield return new WaitForSeconds(2.0f);
 
-            // Step 6: Drag rotate world to optical perspective seam
+            // Step 6: Drag rotate world to optical perspective seam (90° -> 0°, dragging right turns world right)
             Status = "Chapter 1: Dragging world to optical perspective seam...";
-            Vector2 skyStart = new Vector2(Screen.width * 0.72f, Screen.height * 0.40f);
-            Vector2 skyEnd = new Vector2(Screen.width * 0.28f, Screen.height * 0.40f);
-            yield return DragMouse(skyStart, skyEnd, 2.2f, (t) => { });
+            Vector2 skyStart = new Vector2(Screen.width * 0.28f, Screen.height * 0.40f);
+            Vector2 skyEnd = new Vector2(Screen.width * 0.72f, Screen.height * 0.40f);
+            float startWorldYaw = g.WorldYaw;
+            yield return DragMouse(skyStart, skyEnd, 2.2f, (t) =>
+            {
+                g.SnapWorld(Mathf.Lerp(startWorldYaw, Level2Rules.SeamYaw, t));
+            });
             g.SnapWorld(Level2Rules.SeamYaw);
             yield return new WaitForSeconds(2.8f);
 
@@ -491,93 +520,91 @@ namespace PerspectivePuzzle
 
             // Click button to advance to Chapter 2
             Status = "Advancing to Chapter 2...";
-            float scaleL2 = Mathf.Max(0.7f, Screen.height / 1080f);
+            scaleL2 = Mathf.Max(0.7f, Screen.height / 1080f);
             float wL2 = Screen.width / scaleL2;
-            float hL2 = Screen.height / scaleL2;
+            hL2 = Screen.height / scaleL2;
             float bwL2 = 300f;
             float gapL2 = 24f;
             float btnX = (wL2 - bwL2 * 3 - gapL2 * 2) * 0.5f + bwL2 + gapL2;
             float btnY = hL2 * 0.29f + 230f;
             Vector2 chap2BtnGui = new Vector2((btnX + bwL2 * 0.5f) * scaleL2, (btnY + 28f) * scaleL2);
             yield return VisualClickGui(chap2BtnGui);
-            yield return new WaitForSeconds(1.0f);
+            yield return new WaitForSeconds(0.5f);
 
             // ==========================================
             // CHUYỂN SANG CHƯƠNG 2: NGÕ PHỐ & TIẾNG LOA / LEVEL 1
             // ==========================================
             Status = "Transitioning to Chapter 2 (Echoes of Old Hanoi)...";
-            SceneManager.LoadScene("Level1");
-            yield return new WaitForSeconds(2.0f);
+            if (SceneManager.GetActiveScene().name != "Level1")
+            {
+                SceneManager.LoadScene("Level1");
+            }
+            while (SceneManager.GetActiveScene().name != "Level1")
+                yield return null;
+            yield return new WaitForSeconds(1.5f);
             HookAudioListener();
 
             var dir = FindAnyObjectByType<Level1Director>();
             var player = FindAnyObjectByType<PlayerMovement>();
             var rot = FindAnyObjectByType<BuildingRotator>();
-            var pres0 = FindAnyObjectByType<Level1Presenter>();
 
-            float scale0 = Mathf.Max(0.75f, Screen.height / 1080f);
-            float h0 = Screen.height / scale0;
-            float topY0 = Mathf.Max(30f, h0 * 0.12f);
+            // Narration: Wait for intro narration to finish comfortably without any mouse clicks
+            Status = "Chapter 2: Intro narration...";
+            yield return MoveMouse(new Vector2(Screen.width * 0.50f, Screen.height * 0.50f), 0.8f);
+            while (dir != null && dir.Phase == Level1Phase.Intro) yield return null;
+            yield return new WaitForSeconds(1.2f);
 
-            // Showcase Controls Modal briefly
-            Status = "Chapter 2: Controls Guide...";
-            Vector2 helpBtnGui = new Vector2(center.x, (topY0 + 288f + 24f) * scale0);
-            yield return VisualClickGui(helpBtnGui);
-            if (pres0 != null) pres0.ShowControlsModal = true;
-            yield return new WaitForSeconds(2.5f);
-
-            // Close Controls Modal
-            float modalH0 = 350f;
-            float modalY0 = (h0 - modalH0) * 0.5f;
-            Vector2 closeBtnGui = new Vector2(center.x, (modalY0 + modalH0 - 60f + 23f) * scale0);
-            yield return VisualClickGui(closeBtnGui);
-            if (pres0 != null) pres0.ShowControlsModal = false;
-            yield return new WaitForSeconds(1.0f);
-
-            // Click [ ▶ BẮT ĐẦU CHƠI / START GAME ]
-            Status = "Starting Chapter 2...";
-            Vector2 startBtnGui = new Vector2(center.x, (topY0 + 160f + 29f) * scale0);
-            yield return VisualClickGui(startBtnGui);
-            if (pres0 != null) pres0.ShowStartMenu = false;
-            yield return new WaitForSeconds(1.5f);
-
-            // Narration: Pacing calibrated for comfortable reading (solving rapid text issue)
-            Status = "Chapter 2: Intro narration (pacing calibrated for comfortable reading)...";
-            yield return MoveMouse(center + new Vector2(0f, 60f), 0.8f);
-            for (int i = 0; i < 4 && dir.Phase == Level1Phase.Intro; i++)
+            // =========================================================================
+            // BƯỚC 1: BẤM CÁI MÀU VÀNG TRƯỚC (Click Yellow Marker B at the gap edge!)
+            // =========================================================================
+            Status = "Chapter 2: Clicking yellow marker B (walking to broken gap)...";
+            if (dir != null && dir.NodeB != null)
             {
-                yield return new WaitForSeconds(3.5f);
-                yield return VisualClickGui(center + new Vector2(0f, 40f));
+                yield return VisualClickWorld(dir.NodeB.transform.position, Camera.main);
+                if (dir.Player != null)
+                    dir.Player.TryMoveTo(dir.NodeB);
             }
-            while (dir.Phase == Level1Phase.Intro) yield return null;
-            yield return new WaitForSeconds(1.5f);
+            while (player != null && player.IsMoving) yield return null;
 
-            // Step 1: Walk to Point B
-            Status = "Chapter 2: Walking to Corridor B...";
-            yield return VisualClickPoint("B");
-            while (player.IsMoving) yield return null;
-            yield return new WaitForSeconds(1.8f);
-
-            // Step 2: Smoothly drag rotate building to Corridor Yaw
-            Status = "Chapter 2: Rotating house to connect corridor...";
-            Vector2 dragStart = new Vector2(Screen.width * 0.68f, Screen.height * 0.70f);
-            Vector2 dragEnd = new Vector2(Screen.width * 0.32f, Screen.height * 0.70f);
-            float startYaw = rot.CurrentYaw;
-            float targetYaw = StoryProgress.CorridorYaw;
-
-            yield return DragMouse(dragStart, dragEnd, 3.0f, (t) =>
-            {
-                float current = Mathf.LerpAngle(startYaw, targetYaw, t);
-                Vector3 e = rot.transform.eulerAngles;
-                rot.transform.eulerAngles = new Vector3(e.x, current, e.z);
-            });
-            GameAudio.Instance?.PlayAlign();
+            // Character is now standing at the yellow circle facing the gap!
+            // Wait to admire character at the gap and read dialogue "Có những con đường chỉ mở ra khi ta đổi góc nhìn..."
             yield return new WaitForSeconds(2.2f);
 
-            // Step 3: Walk to Point C (enter room)
-            Status = "Chapter 2: Entering room C...";
-            yield return VisualClickPoint("C");
-            while (player.IsMoving) yield return null;
+            // =========================================================================
+            // BƯỚC 2: XOAY GÓC NHÀ (Rotate house to align optical corridor: 0° -> 315°)
+            // =========================================================================
+            Status = "Chapter 2: Rotating house to align optical corridor (315°)...";
+            Vector2 dragStart = new Vector2(Screen.width * 0.68f, Screen.height * 0.70f);
+            Vector2 dragEnd = new Vector2(Screen.width * 0.35f, Screen.height * 0.70f);
+            float startYaw = rot != null ? rot.CurrentYaw : StoryProgress.StairYaw;
+            float targetYaw = StoryProgress.CorridorYaw; // 315f
+
+            yield return DragMouse(dragStart, dragEnd, 2.8f, (t) =>
+            {
+                if (rot != null)
+                {
+                    float current = Mathf.LerpAngle(startYaw, targetYaw, t);
+                    rot.transform.rotation = Quaternion.Euler(0f, current, 0f);
+                }
+            });
+            if (rot != null)
+                rot.transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+            if (dir != null)
+                dir.OnRotateReleased();
+            GameAudio.Instance?.PlayAlign();
+            yield return new WaitForSeconds(2.0f); // Admire optical connection, red marker C is now visible!
+
+            // =========================================================================
+            // BƯỚC 3: MỚI TỚI CÁI ĐỎ (Now click Red Marker C across the optical bridge!)
+            // =========================================================================
+            Status = "Chapter 2: Walking across aligned optical bridge to Room (Point C)...";
+            if (dir != null && dir.NodeC != null)
+            {
+                yield return VisualClickWorld(dir.NodeC.transform.position, Camera.main);
+                if (dir.Player != null)
+                    dir.Player.TryMoveTo(dir.NodeC);
+            }
+            while (player != null && player.IsMoving) yield return null;
             yield return new WaitForSeconds(1.8f);
 
             // Step 4: Open cabinet & solve puzzle
@@ -618,46 +645,123 @@ namespace PerspectivePuzzle
 
             // Step 5: Walk out through door onto walkway
             Status = "Chapter 2: Walking out door onto upper walkway...";
-            yield return VisualClickPoint("Door");
-            while (player.IsMoving) yield return null;
-            yield return new WaitForSeconds(2.0f);
-
-            // Step 6: THE DOG STAIR TRAP!
-            // Click staircase to flip 180° upside-down so dog patrols on the underside!
-            Status = "Chapter 2: Flipping staircase upside-down to dodge dog...";
-            GameObject flight = GameObject.Find("CauThang2_Flight");
-            if (flight != null)
+            if (dir != null && dir.NodeDoor != null)
             {
-                yield return VisualClickWorld(flight.transform.position, Camera.main);
+                yield return VisualClickWorld(dir.NodeDoor.transform.position, Camera.main);
+                if (dir.Player != null)
+                    dir.Player.TryMoveTo(dir.NodeDoor);
             }
             else
             {
-                yield return VisualClickPoint("Dog");
+                yield return VisualClickPoint("Door");
+            }
+            while (player != null && player.IsMoving) yield return null;
+            yield return new WaitForSeconds(2.0f);
+
+            // Step 6: Rotate building to face staircase & optical alignment (315° -> 250°, dragging right turns house right)
+            Status = "Chapter 2: Rotating house to align staircase...";
+            Vector2 rFromStair = new Vector2(Screen.width * 0.35f, Screen.height * 0.72f);
+            Vector2 rToStair = new Vector2(Screen.width * 0.65f, Screen.height * 0.72f);
+            float curYaw = rot.CurrentYaw;
+            float targetStairYaw = StoryProgress.StairYaw; // 250f
+
+            yield return DragMouse(rFromStair, rToStair, 2.2f, (t) =>
+            {
+                if (rot != null)
+                {
+                    float y = Mathf.LerpAngle(curYaw, targetStairYaw, t);
+                    rot.transform.rotation = Quaternion.Euler(0f, y, 0f);
+                }
+            });
+            if (rot != null)
+                rot.transform.rotation = Quaternion.Euler(0f, targetStairYaw, 0f);
+            if (dir != null)
+                dir.OnRotateReleased();
+            GameAudio.Instance?.PlayAlign();
+            yield return new WaitForSeconds(2.0f); // Now staircase and dog are facing front & center!
+
+            // Step 7: THE DOG STAIR TRAP!
+            // Click staircase to flip 180° upside-down so dog patrols on the underside!
+            Status = "Chapter 2: Flipping staircase upside-down to dodge dog...";
+            GameObject flight = GameObject.Find("CauThang2") ?? GameObject.Find("CauThang2_Pivot");
+            if (flight != null)
+            {
+                yield return VisualClickWorld(flight.transform.position, Camera.main);
             }
             if (dir != null && !dir.StairFlipped)
             {
                 dir.ToggleStairFlip();
             }
-            yield return new WaitForSeconds(3.0f); // Admire flipped staircase and upside-down dog patrol!
+            yield return new WaitForSeconds(2.8f); // Admire flipped staircase and upside-down dog patrol!
 
-            // Step 7: Rooftop perspective climbing
+            // Step 8: Walk up flipped stairs to Point E
+            Status = "Chapter 2: Walking up flipped stairs to Point E...";
+            if (dir != null && dir.NodeE != null)
+            {
+                yield return VisualClickWorld(dir.NodeE.transform.position, Camera.main);
+                if (dir.Player != null)
+                    dir.Player.TryMoveTo(dir.NodeE);
+            }
+            else
+            {
+                yield return VisualClickPoint("E");
+            }
+            int beforeE = dir.story.RoofReached;
+            float waitTimeoutE = Time.time + 10f;
+            while (dir.story.RoofReached <= beforeE && Time.time < waitTimeoutE)
+                yield return null;
+            yield return new WaitForSeconds(1.8f);
+
+            // Step 9: Rooftop perspective climbing for remaining points (F, I, L, G, M)
             Status = "Chapter 2: Climbing to rooftop speaker...";
-            foreach (string p in StoryProgress.RoofPoints)
+            string[] remainingRoof = { "F", "I", "L", "G", "M" };
+            foreach (string p in remainingRoof)
             {
                 float tYaw = StoryProgress.YawForRoof(p);
-                float curY = rot.CurrentYaw;
-                Vector2 rFrom = new Vector2(Screen.width * 0.65f, Screen.height * 0.72f);
-                Vector2 rTo = new Vector2(Screen.width * 0.35f, Screen.height * 0.72f);
+                float cy = rot.CurrentYaw;
+                float d = Mathf.DeltaAngle(cy, tYaw);
+                // Synchronize mouse drag direction with rotation:
+                // d > 0 (counter-clockwise / house turns left) -> mouse drags right to left (0.65 -> 0.35)
+                // d < 0 (clockwise / house turns right) -> mouse drags left to right (0.35 -> 0.65)
+                float fromX = d > 0 ? Screen.width * 0.65f : Screen.width * 0.35f;
+                float toX = d > 0 ? Screen.width * 0.35f : Screen.width * 0.65f;
+                Vector2 rFrom = new Vector2(fromX, Screen.height * 0.72f);
+                Vector2 rTo = new Vector2(toX, Screen.height * 0.72f);
 
                 yield return DragMouse(rFrom, rTo, 2.0f, (t) =>
                 {
-                    float y = Mathf.LerpAngle(curY, tYaw, t);
-                    Vector3 e = rot.transform.eulerAngles;
-                    rot.transform.eulerAngles = new Vector3(e.x, y, e.z);
+                    if (rot != null)
+                    {
+                        float y = Mathf.LerpAngle(cy, tYaw, t);
+                        rot.transform.rotation = Quaternion.Euler(0f, y, 0f);
+                    }
                 });
+                if (rot != null)
+                    rot.transform.rotation = Quaternion.Euler(0f, tYaw, 0f);
+                if (dir != null)
+                    dir.OnRotateReleased();
                 yield return new WaitForSeconds(1.2f);
 
-                yield return VisualClickPoint(p);
+                PathNode roofNode = null;
+                switch (p)
+                {
+                    case "F": roofNode = dir.NodeF; break;
+                    case "I": roofNode = dir.NodeI; break;
+                    case "L": roofNode = dir.NodeL; break;
+                    case "G": roofNode = dir.NodeG; break;
+                    case "M": roofNode = dir.NodeM; break;
+                }
+                if (roofNode != null)
+                {
+                    yield return VisualClickWorld(roofNode.transform.position, Camera.main);
+                    if (dir.Player != null)
+                        dir.Player.TryMoveTo(roofNode);
+                }
+                else
+                {
+                    yield return VisualClickPoint(p);
+                }
+
                 int before = dir.story.RoofReached;
                 float waitTimeout = Time.time + 10f;
                 while (dir.story.RoofReached <= before && Time.time < waitTimeout)
@@ -714,12 +818,12 @@ namespace PerspectivePuzzle
                 }
             }
 
-            // 3. Mux video + recorded in-game audio with soft studio limiter (no clipping, no pops!)
+            // 3. Mux video + recorded in-game audio with clean studio limiter (zero clipping, zero crackle!)
             int sampleRate = AudioSettings.outputSampleRate > 0 ? AudioSettings.outputSampleRate : 48000;
             var muxPsi = new ProcessStartInfo
             {
                 FileName = @"C:\Program Files\Lenovo\GamingAI\2.2.0105.1301\services\editor\ffmpeg.exe",
-                Arguments = $"-y -i \"{RawVideo}\" -f s16le -ar {sampleRate} -ac 2 -i \"{RawAudio}\" -c:v copy -af \"volume=1.35,alimiter=limit=0.96\" -c:a aac -b:a 192k -shortest \"{FinalVideo}\"",
+                Arguments = $"-y -i \"{RawVideo}\" -f s16le -ar {sampleRate} -ac 2 -i \"{RawAudio}\" -c:v copy -af \"volume=0.88,alimiter=limit=0.92\" -c:a aac -b:a 192k -shortest \"{FinalVideo}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
@@ -772,7 +876,7 @@ namespace PerspectivePuzzle
                     {
                         for (int i = 0; i < data.Length; i++)
                         {
-                            short sample = (short)(Mathf.Clamp(data[i], -1f, 1f) * 32767);
+                            short sample = (short)(Mathf.Clamp(data[i] * 0.90f, -0.95f, 0.95f) * 32767);
                             memoryAudioWriter.Write(sample);
                         }
                         TotalAudioSamplesWritten += data.Length;

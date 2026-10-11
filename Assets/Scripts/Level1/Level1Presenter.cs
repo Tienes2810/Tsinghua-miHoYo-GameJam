@@ -19,7 +19,7 @@ namespace PerspectivePuzzle.Level1
         GUIStyle prompt;
         bool stylesReady;
 
-        public bool ShowStartMenu = true;
+        public bool ShowStartMenu = false;
         public bool ShowControlsModal;
 
         public void SetCaption(string value)
@@ -98,37 +98,113 @@ namespace PerspectivePuzzle.Level1
 
         void DrawEnd(float width, float height)
         {
+            // Dim background
             GUI.color = new Color(0.03f, 0.035f, 0.04f, 1f);
             GUI.DrawTexture(new Rect(0f, 0f, width, height), Texture2D.whiteTexture);
-            float a = Mathf.Clamp01((Time.unscaledTime - endShownAt) / 1.2f);
-            Color ink = new Color(0.93f, 0.9f, 0.82f, a);
-            GUI.color = ink;
-            body.normal.textColor = ink;
-            GUI.Label(new Rect(width * 0.12f, height * 0.30f, width * 0.76f, 160f), endTitle, body);
-            float b = Mathf.Clamp01((Time.unscaledTime - endShownAt - 1.2f) / 1.2f);
-            Color soft = new Color(0.93f, 0.78f, 0.45f, b);
-            prompt.normal.textColor = soft;
-            GUI.color = soft;
-            GUI.Label(new Rect(width * 0.12f, height * 0.30f + 168f, width * 0.76f, 50f), endLine, prompt);
-            if (b >= 0.8f)
-            {
-                float btnW = 520f;
-                float btnH = 56f;
-                Rect btnRect = new Rect((width - btnW) * 0.5f, height * 0.30f + 236f, btnW, btnH);
-                Plate(btnRect);
-                Color btnInk = new Color(0.96f, 0.82f, 0.35f, 1f);
-                prompt.normal.textColor = btnInk;
-                if (GUI.Button(btnRect, "↺  CHƠI LẠI TỪ CHƯƠNG 1 (HOÀNG HÔN HÀ NỘI)", prompt))
-                {
-                    UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
-                }
 
-                Color faint = new Color(0.7f, 0.7f, 0.66f, 0.7f);
-                small.normal.textColor = faint;
-                small.alignment = TextAnchor.MiddleCenter;
-                GUI.color = faint;
-                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Hoàn thành toàn bộ trò chơi  ·  Enter: Chơi lại từ đầu  ·  Esc: Thoát / Quit", small);
-                small.alignment = TextAnchor.MiddleLeft;
+            float t = Time.unscaledTime - endShownAt;
+            float a = Mathf.Clamp01(t / 1.2f);
+
+            // Centered elegant card
+            float cardW = Mathf.Min(960f, width * 0.88f);
+            float cardX = (width - cardW) * 0.5f;
+            float startY = height * 0.18f;
+
+            // Header: Chapter 2 complete
+            GUIStyle headerStyle = new GUIStyle(small)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 18,
+                fontStyle = FontStyle.Bold
+            };
+            Color gold = new Color(1f, 0.82f, 0.35f, a);
+            headerStyle.normal.textColor = gold;
+            GUI.color = gold;
+            GUI.Label(new Rect(cardX, startY, cardW, 28f), "CHƯƠNG 2 HOÀN THÀNH  ·  CHAPTER 2 COMPLETE", headerStyle);
+
+            // Main Title
+            GUIStyle endTitleStyle = new GUIStyle(title)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 32,
+                fontStyle = FontStyle.Bold
+            };
+            Color ink = new Color(0.96f, 0.95f, 0.92f, a);
+            endTitleStyle.normal.textColor = ink;
+            GUI.color = ink;
+            GUI.Label(new Rect(cardX, startY + 36f, cardW, 48f), "TIẾNG LOA BAN MAI", endTitleStyle);
+
+            // Divider
+            GUI.color = new Color(1f, 0.82f, 0.35f, 0.4f * a);
+            GUI.DrawTexture(new Rect(cardX + cardW * 0.3f, startY + 92f, cardW * 0.4f, 2f), Texture2D.whiteTexture);
+
+            // End Quote / Title text with full word wrap and calculated height
+            GUIStyle quoteStyle = new GUIStyle(body)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 20,
+                fontStyle = FontStyle.Normal,
+                wordWrap = true,
+                clipping = TextClipping.Overflow
+            };
+            Color softWhite = new Color(0.92f, 0.90f, 0.84f, a);
+            quoteStyle.normal.textColor = softWhite;
+            GUI.color = softWhite;
+
+            float quoteH = quoteStyle.CalcHeight(new GUIContent(endTitle), cardW);
+            float quoteY = startY + 108f;
+            GUI.Label(new Rect(cardX, quoteY, cardW, quoteH), endTitle, quoteStyle);
+
+            // Thank you subtitle
+            float b = Mathf.Clamp01((t - 1.2f) / 1.2f);
+            if (b > 0.01f)
+            {
+                GUIStyle subStyle = new GUIStyle(prompt)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 17,
+                    fontStyle = FontStyle.Italic,
+                    wordWrap = true,
+                    clipping = TextClipping.Overflow
+                };
+                Color softGold = new Color(0.95f, 0.82f, 0.45f, b);
+                subStyle.normal.textColor = softGold;
+                GUI.color = softGold;
+
+                float subH = subStyle.CalcHeight(new GUIContent(endLine), cardW);
+                float subY = quoteY + quoteH + 18f;
+                GUI.Label(new Rect(cardX, subY, cardW, subH), endLine, subStyle);
+
+                // Action buttons below
+                if (b >= 0.7f)
+                {
+                    float btnY = subY + subH + 28f;
+                    float btnW = 560f;
+                    float btnH = 54f;
+                    Rect btnRect = new Rect((width - btnW) * 0.5f, btnY, btnW, btnH);
+                    Plate(btnRect);
+
+                    GUIStyle btnStyle = new GUIStyle(prompt)
+                    {
+                        alignment = TextAnchor.MiddleCenter,
+                        fontSize = 19,
+                        fontStyle = FontStyle.Bold,
+                        wordWrap = false
+                    };
+                    btnStyle.normal.textColor = gold;
+                    GUI.color = gold;
+                    if (GUI.Button(btnRect, "↺  CHƠI LẠI TỪ CHƯƠNG 1  ·  RESTART CHAPTER 1", btnStyle))
+                    {
+                        UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
+                    }
+
+                    Color faint = new Color(0.7f, 0.7f, 0.66f, 0.7f * b);
+                    small.normal.textColor = faint;
+                    small.alignment = TextAnchor.MiddleCenter;
+                    GUI.color = faint;
+                    GUI.Label(new Rect(0f, height - 50f, width, 30f), "Hoàn thành trò chơi / Game Complete  ·  Enter: Chơi lại / Restart  ·  Esc: Thoát / Quit", small);
+                    small.alignment = TextAnchor.MiddleLeft;
+                }
             }
             GUI.color = Color.white;
         }

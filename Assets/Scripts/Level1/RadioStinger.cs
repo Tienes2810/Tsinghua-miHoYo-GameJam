@@ -42,24 +42,9 @@ namespace PerspectivePuzzle.Level1
                 float t = i / (float)Rate;
                 float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
 
-                // Static: loud at first, falling under the signal.
-                float staticAmp;
-                if (t < StaticSeconds)
-                    staticAmp = 0.32f * Mathf.Clamp01(t / 0.05f) * (1f - 0.55f * t / StaticSeconds);
-                else
-                    staticAmp = 0.06f;
-                low += (noise - low) * 0.35f;
-                float hiss = low * staticAmp;
-                if (t < StaticSeconds && rng.NextDouble() < 0.0009)
-                    hiss += (float)(rng.NextDouble() - 0.5) * 0.9f;
-
-                // Tuning sweep across the static.
+                // Clean tone without synthetic crackle or hiss
+                float hiss = 0f;
                 float sweep = 0f;
-                if (t < StaticSeconds)
-                {
-                    float f = Mathf.Lerp(1800f, 600f, t / StaticSeconds);
-                    sweep = Mathf.Sin(2f * Mathf.PI * f * t) * 0.05f * Mathf.Sin(Mathf.PI * t / StaticSeconds);
-                }
 
                 float tone = 0f;
                 float st = t - StaticSeconds;
