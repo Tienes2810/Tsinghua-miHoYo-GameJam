@@ -107,3 +107,25 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Automated playtest screenshots & temporary visual assets
+/[Aa]ssets/[Ss]creenshots/
+/[Aa]ssets/[Ss]creenshots.meta
+/[Aa]ssets/[Tt]emp/
+/[Aa]ssets/[Tt]emp.meta
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
+
+# Coplay package cache & local editor logs
+/[Pp]ackages/[Cc]oplay/
+
+# Root loose files / duplicate exports
+/*.fbx
+/*.png
+/*.exr
+/tầng 1/
+
+# Temporary blockout scratch files
+/[Aa]ssets/Art/Models/Blockout/test.*
+/[Aa]ssets/Art/Models/Blockout/test.fbm/
+/[Aa]ssets/Art/Models/Blockout/test.fbm.meta

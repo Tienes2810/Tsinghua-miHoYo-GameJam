@@ -463,6 +463,11 @@ namespace PerspectivePuzzle.Level1
         IEnumerator Intro()
         {
             phase = Level1Phase.Intro;
+            while (presenter != null && presenter.ShowStartMenu)
+            {
+                yield return null;
+            }
+
             if (presenter != null)
             {
                 presenter.SetDim(0.94f);

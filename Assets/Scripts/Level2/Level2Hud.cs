@@ -37,6 +37,14 @@ namespace PerspectivePuzzle.Level2
             return false;
         }
 
+        void Update()
+        {
+            if (GameInput.GetKeyDown(KeyCode.F11) || ((GameInput.GetKey(KeyCode.LeftAlt) || GameInput.GetKey(KeyCode.RightAlt)) && GameInput.GetKeyDown(KeyCode.Return)))
+            {
+                ScreenUtils.ToggleFullscreen();
+            }
+        }
+
         void EnsureStyles()
         {
             if (titleStyle != null)
@@ -245,10 +253,14 @@ namespace PerspectivePuzzle.Level2
         void DrawTopButtons(Level2Game g, float w, bool withRestart)
         {
             float y = withRestart ? 84f : 22f;
-            if (Button(new Rect(w - 294f, y, 270f, 40f), "← Chương 1 / Chapter 1", Plate))
+            float btnW = 300f;
+            if (Button(new Rect(w - (btnW + 24f), y, btnW, 40f), "← Chương 1 / Chapter 1", Plate))
                 g.BackToChapter1();
-            if (withRestart && Button(new Rect(w - 294f, y + 48f, 270f, 40f), "Chơi lại / Restart  (R)", Plate))
+            if (withRestart && Button(new Rect(w - (btnW + 24f), y + 48f, btnW, 40f), "Chơi lại / Restart  (R)", Plate))
                 g.Restart();
+            string fsLabel = ScreenUtils.IsFullscreen ? "🗗 Cửa sổ / Window (F11)" : "⛶ Toàn màn hình / Fullscreen (F11)";
+            if (Button(new Rect(w - (btnW + 24f), y + (withRestart ? 96f : 48f), btnW, 40f), fsLabel, Plate))
+                ScreenUtils.ToggleFullscreen();
         }
 
         void DrawEnd(Level2Game g, float w, float h)

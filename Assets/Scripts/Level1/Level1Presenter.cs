@@ -19,6 +19,9 @@ namespace PerspectivePuzzle.Level1
         GUIStyle prompt;
         bool stylesReady;
 
+        public bool ShowStartMenu = true;
+        public bool ShowControlsModal;
+
         public void SetCaption(string value)
         {
             caption = value;
@@ -54,6 +57,38 @@ namespace PerspectivePuzzle.Level1
 
         void Update()
         {
+            bool isAlt = GameInput.GetKey(KeyCode.LeftAlt) || GameInput.GetKey(KeyCode.RightAlt);
+            if (GameInput.GetKeyDown(KeyCode.F11) || (isAlt && GameInput.GetKeyDown(KeyCode.Return)))
+            {
+                ScreenUtils.ToggleFullscreen();
+            }
+
+            if (GameInput.GetKeyDown(KeyCode.H))
+            {
+                ShowControlsModal = !ShowControlsModal;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            if (ShowControlsModal)
+            {
+                if (GameInput.GetKeyDown(KeyCode.Escape))
+                {
+                    ShowControlsModal = false;
+                    PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+                }
+                return;
+            }
+
+            if (ShowStartMenu)
+            {
+                if (!isAlt && (GameInput.GetKeyDown(KeyCode.Return) || GameInput.GetKeyDown(KeyCode.KeypadEnter) || GameInput.GetKeyDown(KeyCode.Space)))
+                {
+                    ShowStartMenu = false;
+                    PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+                }
+                return;
+            }
+
             if (EndScreen && Time.unscaledTime - endShownAt > 1.5f && GameInput.GetKeyDown(KeyCode.Escape))
                 Application.Quit();
             if (EndScreen && Time.unscaledTime - endShownAt > 2.4f &&
@@ -106,6 +141,17 @@ namespace PerspectivePuzzle.Level1
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
             float width = Screen.width / scale;
             float height = Screen.height / scale;
+
+            if (ShowStartMenu)
+            {
+                DrawStartMenu(width, height);
+                if (ShowControlsModal)
+                {
+                    DrawControlsModal(width, height);
+                }
+                GUI.matrix = saved;
+                return;
+            }
 
             if (EndScreen)
             {
@@ -175,6 +221,24 @@ namespace PerspectivePuzzle.Level1
                 GUI.Label(new Rect(width - 548f, 20f, 506f, 28f), performance, small);
             }
 
+            // Top-right buttons
+            Rect helpBtnRect = new Rect(width - 834f, 56f, 230f, 34f);
+            Plate(helpBtnRect);
+            if (GUI.Button(helpBtnRect, "📖 Hướng dẫn / Guide (H)", small))
+            {
+                ShowControlsModal = !ShowControlsModal;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            Rect fsRect = new Rect(width - 594f, 56f, 310f, 34f);
+            Plate(fsRect);
+            string fsLabel = ScreenUtils.IsFullscreen ? "🗗 Cửa sổ / Window (F11)" : "⛶ Toàn màn hình / Fullscreen (F11)";
+            if (GUI.Button(fsRect, fsLabel, small))
+            {
+                ScreenUtils.ToggleFullscreen();
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
             Rect chapRect = new Rect(width - 274f, 56f, 250f, 34f);
             Plate(chapRect);
             if (GUI.Button(chapRect, "Chương 2 / Chapter 2  →", small))
@@ -182,7 +246,174 @@ namespace PerspectivePuzzle.Level1
                 UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
             }
 
+            if (ShowControlsModal)
+            {
+                DrawControlsModal(width, height);
+            }
+
             GUI.matrix = saved;
+        }
+
+        void DrawStartMenu(float width, float height)
+        {
+            // Dark elegant background
+            GUI.color = new Color(0.04f, 0.045f, 0.055f, 0.94f);
+            GUI.DrawTexture(new Rect(0f, 0f, width, height), Texture2D.whiteTexture);
+
+            float centerX = width * 0.5f;
+            float topY = Mathf.Max(30f, height * 0.12f);
+
+            // Header: Jam info
+            Color gold = new Color(1f, 0.82f, 0.35f, 1f);
+            small.alignment = TextAnchor.MiddleCenter;
+            small.normal.textColor = gold;
+            GUI.color = gold;
+            GUI.Label(new Rect(0f, topY, width, 28f), "TSINGHUA UNIVERSITY  ×  MIHOYO GAME JAM 2026", small);
+
+            // Title
+            GUIStyle bigTitle = new GUIStyle(title)
+            {
+                fontSize = 44,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            Color ink = new Color(0.96f, 0.95f, 0.92f, 1f);
+            bigTitle.normal.textColor = ink;
+            GUI.color = ink;
+            GUI.Label(new Rect(0f, topY + 36f, width, 58f), "HỒI ỨC PHỐ CŨ", bigTitle);
+
+            // Subtitle
+            Color soft = new Color(0.85f, 0.85f, 0.80f, 0.85f);
+            small.normal.textColor = soft;
+            GUI.color = soft;
+            GUI.Label(new Rect(0f, topY + 98f, width, 28f), "ECHOES OF OLD HANOI  ·  PERSPECTIVE PUZZLE ADVENTURE", small);
+
+            // Gold divider
+            GUI.color = new Color(1f, 0.82f, 0.35f, 0.45f);
+            GUI.DrawTexture(new Rect(centerX - 180f, topY + 134f, 360f, 2f), Texture2D.whiteTexture);
+
+            // 1. Start Button
+            float btnW = 460f;
+            float btnH = 58f;
+            float curY = topY + 160f;
+            Rect startRect = new Rect(centerX - btnW * 0.5f, curY, btnW, btnH);
+            Plate(startRect);
+            prompt.alignment = TextAnchor.MiddleCenter;
+            prompt.normal.textColor = gold;
+            GUI.color = gold;
+            if (GUI.Button(startRect, "▶  BẮT ĐẦU CHƠI  /  START GAME", prompt))
+            {
+                ShowStartMenu = false;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            // 2. Fullscreen Button
+            curY += 70f;
+            Rect fsRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 48f);
+            Plate(fsRect);
+            string fsLabel = ScreenUtils.IsFullscreen ? "🗗  CỬA SỔ  /  WINDOWED (F11)" : "⛶  TOÀN MÀN HÌNH  /  FULLSCREEN (F11)";
+            Color fsColor = new Color(0.94f, 0.94f, 0.94f, 1f);
+            small.alignment = TextAnchor.MiddleCenter;
+            small.normal.textColor = fsColor;
+            GUI.color = fsColor;
+            if (GUI.Button(fsRect, fsLabel, small))
+            {
+                ScreenUtils.ToggleFullscreen();
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            // 3. Controls Guide Button (Interactive & Clickable!)
+            curY += 58f;
+            Rect helpRect = new Rect(centerX - btnW * 0.5f, curY, btnW, 48f);
+            Plate(helpRect);
+            Color guideBtnColor = new Color(1f, 0.84f, 0.45f, 1f);
+            small.normal.textColor = guideBtnColor;
+            GUI.color = guideBtnColor;
+            if (GUI.Button(helpRect, "📖  HƯỚNG DẪN  ·  CONTROLS GUIDE (H)", small))
+            {
+                ShowControlsModal = true;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            // Bottom controls strip (also clickable to open full guide)
+            float infoW = Mathf.Min(820f, width - 60f);
+            float infoH = 68f;
+            Rect infoRect = new Rect(centerX - infoW * 0.5f, height - infoH - 24f, infoW, infoH);
+            Plate(infoRect);
+
+            if (GUI.Button(infoRect, GUIContent.none, GUIStyle.none))
+            {
+                ShowControlsModal = true;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            small.alignment = TextAnchor.MiddleLeft;
+            Color guideHeader = new Color(1f, 0.84f, 0.45f, 0.95f);
+            small.normal.textColor = guideHeader;
+            GUI.color = guideHeader;
+            GUI.Label(new Rect(infoRect.x + 20f, infoRect.y + 8f, infoW - 40f, 22f), "HƯỚNG DẪN ĐIỀU KHIỂN  ·  CONTROLS (Click xem chi tiết / Full guide)", small);
+
+            Color guideBody = new Color(0.88f, 0.88f, 0.85f, 0.85f);
+            small.normal.textColor = guideBody;
+            GUI.color = guideBody;
+            string guideText = "• Click: Đi / Walk  ·  Kéo / Drag: Xoay góc nhìn / Rotate  ·  F11: Toàn màn hình / Fullscreen\n" +
+                               "• Nhấn phím H hoặc click ô này để mở hướng dẫn chi tiết / Press H for controls";
+            GUI.Label(new Rect(infoRect.x + 20f, infoRect.y + 30f, infoW - 40f, 32f), guideText, small);
+
+            GUI.color = Color.white;
+        }
+
+        void DrawControlsModal(float width, float height)
+        {
+            // Dim background behind modal
+            GUI.color = new Color(0f, 0f, 0f, 0.75f);
+            GUI.DrawTexture(new Rect(0f, 0f, width, height), Texture2D.whiteTexture);
+
+            float modalW = Mathf.Min(780f, width - 60f);
+            float modalH = 350f;
+            Rect modalRect = new Rect((width - modalW) * 0.5f, (height - modalH) * 0.5f, modalW, modalH);
+
+            Plate(modalRect);
+
+            // Modal Header
+            Color gold = new Color(1f, 0.82f, 0.35f, 1f);
+            small.alignment = TextAnchor.MiddleCenter;
+            small.normal.textColor = gold;
+            GUI.color = gold;
+            GUI.Label(new Rect(modalRect.x, modalRect.y + 16f, modalW, 28f), "📖  HƯỚNG DẪN ĐIỀU KHIỂN  ·  CONTROLS GUIDE", small);
+
+            // Divider
+            GUI.color = new Color(1f, 0.82f, 0.35f, 0.35f);
+            GUI.DrawTexture(new Rect(modalRect.x + 36f, modalRect.y + 48f, modalW - 72f, 1f), Texture2D.whiteTexture);
+
+            // Instructions text
+            Color soft = new Color(0.92f, 0.92f, 0.90f, 1f);
+            small.normal.textColor = soft;
+            GUI.color = soft;
+            small.alignment = TextAnchor.MiddleLeft;
+            string guide =
+                "• Chuột trái (Left Click): Click điểm vàng hoặc sàn để di chuyển nhân vật (Walk)\n" +
+                "• Kéo chuột (Drag): Xoay góc nhìn kiến trúc để nối các lối đi đánh lừa thị giác (Perspective shift)\n" +
+                "• Phím F11 / Alt+Enter: Bật/Tắt toàn màn hình · Toggle Fullscreen\n" +
+                "• Phím R: Khởi động lại khi muốn chơi lại từ đầu · Restart\n" +
+                "• Phím H / Esc: Đóng hoặc mở lại bảng hướng dẫn này · Toggle Guide";
+            GUI.Label(new Rect(modalRect.x + 36f, modalRect.y + 64f, modalW - 72f, 190f), guide, small);
+
+            // Close button
+            float closeW = 280f;
+            float closeH = 46f;
+            Rect closeRect = new Rect(modalRect.x + (modalW - closeW) * 0.5f, modalRect.y + modalH - 60f, closeW, closeH);
+            Plate(closeRect);
+            prompt.alignment = TextAnchor.MiddleCenter;
+            prompt.normal.textColor = gold;
+            GUI.color = gold;
+            if (GUI.Button(closeRect, "✕  ĐÃ HIỂU  /  GOT IT", prompt))
+            {
+                ShowControlsModal = false;
+                PerspectivePuzzle.Audio.GameAudio.Instance?.PlayClick();
+            }
+
+            GUI.color = Color.white;
         }
 
         void EnsureStyles()

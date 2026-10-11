@@ -495,7 +495,7 @@ namespace PerspectivePuzzle.Level2
             }
         }
 
-        void SnapLift(float target)
+        public void SnapLift(float target)
         {
             liftTween?.Kill();
             float distance = Mathf.Abs(target - LiftHeight);
@@ -517,7 +517,7 @@ namespace PerspectivePuzzle.Level2
                 crankT.localRotation = Quaternion.Euler(0f, BridgeYaw, 0f);
         }
 
-        void SnapBridge(float target)
+        public void SnapBridge(float target)
         {
             bridgeTween?.Kill();
             float distance = Mathf.Abs(Mathf.DeltaAngle(BridgeYaw, target));
@@ -558,7 +558,7 @@ namespace PerspectivePuzzle.Level2
             SnapWorld(Level2Rules.SnapQuarter(WorldYaw + delta));
         }
 
-        void SnapWorld(float target)
+        public void SnapWorld(float target)
         {
             worldTween?.Kill();
             float distance = Mathf.Abs(Mathf.DeltaAngle(WorldYaw, target));
