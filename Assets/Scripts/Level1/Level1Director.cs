@@ -966,12 +966,8 @@ namespace PerspectivePuzzle.Level1
                 return;
             }
 
-            bool spawned = false;
             if (dogPatrol == null)
-            {
                 dogPatrol = MakeDog("DogPatrol", root);
-                spawned = true;
-            }
             dogPatrol.gameObject.SetActive(true);
 
             Vector3 target;
@@ -998,17 +994,9 @@ namespace PerspectivePuzzle.Level1
                 face = loop <= 7f ? Vector3.back : Vector3.forward;
             }
 
-            Vector3 now = dogPatrol.localPosition;
-            float far = Vector3.Distance(now, target);
-            if (spawned || safe)
-            {
-                // Out of sight behind the stair wall; do not slide through the air or house.
-                dogPatrol.localPosition = target;
-            }
-            else
-            {
-                dogPatrol.localPosition = far > 0.6f ? Vector3.MoveTowards(now, target, Time.deltaTime * 2.5f) : target;
-            }
+            // The patrol target already advances tread by tread each frame. Switching between the
+            // stair patrol and the room rest is a jump, never a glide across the stairwell void.
+            dogPatrol.localPosition = target;
             dogPatrol.localRotation = Quaternion.LookRotation(face, Vector3.up);
         }
 
