@@ -745,10 +745,20 @@ namespace PerspectivePuzzle.Level2
                 body.transform.localPosition = Vector3.zero;
                 body.transform.localRotation = Quaternion.identity;
                 foreach (Collider c in body.GetComponentsInChildren<Collider>())
-                    Destroy(c);
+                    L2Kit.SafeDestroy(c);
                 Bounds b = RendererBounds(body);
                 if (b.size.y > 0.01f)
                     body.transform.localScale = Vector3.one * (PlayerHeight / b.size.y);
+                Material charMat = Resources.Load<Material>("Mat_Character_Ch09");
+#if UNITY_EDITOR
+                if (charMat == null)
+                    charMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Materials/Mat_Character_Ch09.mat");
+#endif
+                if (charMat != null)
+                {
+                    foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+                        r.sharedMaterial = charMat;
+                }
             }
             else
             {
@@ -764,7 +774,7 @@ namespace PerspectivePuzzle.Level2
             foreach (Animator a in go.GetComponentsInChildren<Animator>())
                 a.applyRootMotion = false;
             foreach (Collider c in go.GetComponentsInChildren<Collider>())
-                Destroy(c);
+                L2Kit.SafeDestroy(c);
             player.SetPace(0.34f);
             player.PlaceAt(s0);
             go.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);

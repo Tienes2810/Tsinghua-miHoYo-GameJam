@@ -118,7 +118,7 @@ namespace PerspectivePuzzle.Level1
                 Plate(btnRect);
                 Color btnInk = new Color(0.96f, 0.82f, 0.35f, 1f);
                 prompt.normal.textColor = btnInk;
-                if (GUI.Button(btnRect, "CHƯƠNG 2: HÀ NỘI HOÀNG HÔN  →", prompt))
+                if (GUI.Button(btnRect, "↺  CHƠI LẠI TỪ CHƯƠNG 1 (HOÀNG HÔN HÀ NỘI)", prompt))
                 {
                     UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
                 }
@@ -127,7 +127,7 @@ namespace PerspectivePuzzle.Level1
                 small.normal.textColor = faint;
                 small.alignment = TextAnchor.MiddleCenter;
                 GUI.color = faint;
-                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Hoàn thành Chương 1  ·  Enter: Chương 2  ·  Esc: Thoát / Quit", small);
+                GUI.Label(new Rect(0f, height - 60f, width, 30f), "Hoàn thành toàn bộ trò chơi  ·  Enter: Chơi lại từ đầu  ·  Esc: Thoát / Quit", small);
                 small.alignment = TextAnchor.MiddleLeft;
             }
             GUI.color = Color.white;
@@ -241,7 +241,7 @@ namespace PerspectivePuzzle.Level1
 
             Rect chapRect = new Rect(width - 274f, 56f, 250f, 34f);
             Plate(chapRect);
-            if (GUI.Button(chapRect, "Chương 2 / Chapter 2  →", small))
+            if (GUI.Button(chapRect, "← Chương 1 / Chapter 1", small))
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene("Level2");
             }
@@ -286,7 +286,7 @@ namespace PerspectivePuzzle.Level1
             Color soft = new Color(0.85f, 0.85f, 0.80f, 0.85f);
             small.normal.textColor = soft;
             GUI.color = soft;
-            GUI.Label(new Rect(0f, topY + 98f, width, 28f), "ECHOES OF OLD HANOI  ·  PERSPECTIVE PUZZLE ADVENTURE", small);
+            GUI.Label(new Rect(0f, topY + 98f, width, 28f), "CHƯƠNG 2: NGÕ PHỐ & TIẾNG LOA · CHAPTER 2: ALLEYWAYS & LOUDSPEAKER", small);
 
             // Gold divider
             GUI.color = new Color(1f, 0.82f, 0.35f, 0.45f);

@@ -166,6 +166,14 @@ namespace PerspectivePuzzle.Level1
                 next.transform.localScale = Vector3.one * (targetHeight / now.size.y);
             foreach (Collider col in next.GetComponentsInChildren<Collider>())
                 DestroyImmediate(col);
+            Material charMat = Resources.Load<Material>("Mat_Character_Ch09");
+            if (charMat == null)
+                charMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Materials/Mat_Character_Ch09.mat");
+            if (charMat != null)
+            {
+                foreach (var r in next.GetComponentsInChildren<Renderer>(true))
+                    r.sharedMaterial = charMat;
+            }
             AttachHand(next.transform);
             Animator bodyAnimator = next.GetComponentInChildren<Animator>();
             if (bodyAnimator != null)

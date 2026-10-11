@@ -193,9 +193,9 @@ namespace PerspectivePuzzle
 
             HookAudioListener();
 
-            if (SceneManager.GetActiveScene().name != "Level1")
+            if (SceneManager.GetActiveScene().name != "Level2")
             {
-                SceneManager.LoadScene("Level1");
+                SceneManager.LoadScene("Level2");
                 yield return new WaitForSeconds(1.5f);
                 HookAudioListener();
             }
@@ -402,29 +402,129 @@ namespace PerspectivePuzzle
 
         IEnumerator CinematicPlaythrough()
         {
-            var dir = FindAnyObjectByType<Level1Director>();
-            var player = FindAnyObjectByType<PlayerMovement>();
-            var rot = FindAnyObjectByType<BuildingRotator>();
             Vector2 center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
 
             // ==========================================
-            // MÀN HÌNH BẮT ĐẦU / START SCREEN & CHỨC NĂNG
+            // CHƯƠNG 1: HÀ NỘI HOÀNG HÔN / LEVEL 2
             // ==========================================
-            Status = "Showcasing Start Screen...";
+            Status = "Chapter 1: Hanoi Sunset...";
             yield return MoveMouse(center, 0.7f);
+            yield return new WaitForSeconds(2.8f);
+
+            var g = Level2Game.Instance;
+            Camera cam2 = g != null ? g.View : Camera.main;
+
+            // Dismiss intro dialogs slowly
+            for (int i = 0; i < 5 && g != null && g.State == Level2Game.Phase.Intro; i++)
+            {
+                yield return VisualClickGui(new Vector2(Screen.width * 0.5f, Screen.height * 0.45f));
+                yield return new WaitForSeconds(1.5f);
+            }
+            yield return new WaitForSeconds(1.6f);
+
+            // Step 1: Walk to lift
+            Status = "Chapter 1: Walking onto lift...";
+            yield return VisualClickL2Node(g, cam2, "Lift");
+            while (g.Player.IsMoving) yield return null;
+            yield return new WaitForSeconds(1.8f);
+
+            // Step 2: Drag lift up to rooftop
+            Status = "Chapter 1: Dragging lift up to rooftop...";
+            Vector3 wBottom = g.LiftTransform.position + Vector3.down * 0.5f;
+            Vector2 spBottom = cam2.WorldToScreenPoint(wBottom);
+            Vector2 guiLiftBottom = new Vector2(spBottom.x, Screen.height - spBottom.y);
+
+            Vector3 wTop = wBottom + g.Diorama.up * 3.4f;
+            Vector2 spTop = cam2.WorldToScreenPoint(wTop);
+            Vector2 guiLiftTop = new Vector2(spTop.x, Screen.height - spTop.y);
+
+            yield return DragMouse(guiLiftBottom, guiLiftTop, 2.4f, (t) => { });
+            g.SnapLift(Level2Rules.LiftHigh);
+            float liftWait = Time.time + 5f;
+            while (Mathf.Abs(g.LiftHeight - 3f) > 0.05f && Time.time < liftWait) yield return null;
             yield return new WaitForSeconds(2.0f);
 
+            // Step 3: Walk to first lantern (U2)
+            Status = "Chapter 1: Lighting first lantern...";
+            yield return VisualClickL2Node(g, cam2, "U2");
+            while (g.Player.IsMoving) yield return null;
+            yield return new WaitForSeconds(2.6f);
+
+            // Step 4: Turn crimson bridge
+            Status = "Chapter 1: Turning crimson bridge across canal...";
+            Vector3 crankPos = g.BridgeTransform.parent.TransformPoint(new Vector3(4f, 1.5f, 4f));
+            yield return VisualClickWorld(crankPos, cam2);
+            g.SnapBridge(0f);
+            yield return new WaitForSeconds(2.0f);
+
+            // Step 5: Walk across bridge to second lantern (C2)
+            Status = "Chapter 1: Crossing bridge to second lantern...";
+            yield return VisualClickL2Node(g, cam2, "C2");
+            while (g.Player.IsMoving) yield return null;
+            yield return new WaitForSeconds(2.6f);
+
+            // Walk to balcony edge (C4)
+            yield return VisualClickL2Node(g, cam2, "C4");
+            while (g.Player.IsMoving) yield return null;
+            yield return new WaitForSeconds(2.0f);
+
+            // Step 6: Drag rotate world to optical perspective seam
+            Status = "Chapter 1: Dragging world to optical perspective seam...";
+            Vector2 skyStart = new Vector2(Screen.width * 0.72f, Screen.height * 0.40f);
+            Vector2 skyEnd = new Vector2(Screen.width * 0.28f, Screen.height * 0.40f);
+            yield return DragMouse(skyStart, skyEnd, 2.2f, (t) => { });
+            g.SnapWorld(Level2Rules.SeamYaw);
+            yield return new WaitForSeconds(2.8f);
+
+            // Step 7: Walk across seam to bell tower (T1)
+            Status = "Chapter 1: Walking across optical seam to bell tower...";
+            yield return VisualClickL2Node(g, cam2, "T1");
+            while (g.State == Level2Game.Phase.Play) yield return null;
+
+            // Step 8: Bell rings, 26 lanterns float up into night sky!
+            Status = "Chapter 1: Bell ringing & 26 sky lanterns rising...";
+            yield return new WaitForSeconds(6.0f);
+
+            // Step 9: Victory Screen "Hà Nội lên đèn"
+            Status = "Chapter 1: Hanoi Lights Up (Victory Screen)...";
+            yield return new WaitForSeconds(4.0f);
+
+            // Click button to advance to Chapter 2
+            Status = "Advancing to Chapter 2...";
+            float scaleL2 = Mathf.Max(0.7f, Screen.height / 1080f);
+            float wL2 = Screen.width / scaleL2;
+            float hL2 = Screen.height / scaleL2;
+            float bwL2 = 300f;
+            float gapL2 = 24f;
+            float btnX = (wL2 - bwL2 * 3 - gapL2 * 2) * 0.5f + bwL2 + gapL2;
+            float btnY = hL2 * 0.29f + 230f;
+            Vector2 chap2BtnGui = new Vector2((btnX + bwL2 * 0.5f) * scaleL2, (btnY + 28f) * scaleL2);
+            yield return VisualClickGui(chap2BtnGui);
+            yield return new WaitForSeconds(1.0f);
+
+            // ==========================================
+            // CHUYỂN SANG CHƯƠNG 2: NGÕ PHỐ & TIẾNG LOA / LEVEL 1
+            // ==========================================
+            Status = "Transitioning to Chapter 2 (Echoes of Old Hanoi)...";
+            SceneManager.LoadScene("Level1");
+            yield return new WaitForSeconds(2.0f);
+            HookAudioListener();
+
+            var dir = FindAnyObjectByType<Level1Director>();
+            var player = FindAnyObjectByType<PlayerMovement>();
+            var rot = FindAnyObjectByType<BuildingRotator>();
             var pres0 = FindAnyObjectByType<Level1Presenter>();
+
             float scale0 = Mathf.Max(0.75f, Screen.height / 1080f);
             float h0 = Screen.height / scale0;
             float topY0 = Mathf.Max(30f, h0 * 0.12f);
 
-            // 1. Showcase Controls Guide Button & Interactive Modal
-            Status = "Showcasing Controls Guide Button & Modal...";
+            // Showcase Controls Modal briefly
+            Status = "Chapter 2: Controls Guide...";
             Vector2 helpBtnGui = new Vector2(center.x, (topY0 + 288f + 24f) * scale0);
             yield return VisualClickGui(helpBtnGui);
             if (pres0 != null) pres0.ShowControlsModal = true;
-            yield return new WaitForSeconds(3.0f); // Allow viewer to read bilingual controls
+            yield return new WaitForSeconds(2.5f);
 
             // Close Controls Modal
             float modalH0 = 350f;
@@ -432,45 +532,34 @@ namespace PerspectivePuzzle
             Vector2 closeBtnGui = new Vector2(center.x, (modalY0 + modalH0 - 60f + 23f) * scale0);
             yield return VisualClickGui(closeBtnGui);
             if (pres0 != null) pres0.ShowControlsModal = false;
-            yield return new WaitForSeconds(1.2f);
+            yield return new WaitForSeconds(1.0f);
 
-            // 2. Showcase Fullscreen Toggle Button
-            Status = "Showcasing Fullscreen Button...";
-            Vector2 fsBtnGui = new Vector2(center.x, (topY0 + 230f + 24f) * scale0);
-            yield return VisualClickGui(fsBtnGui);
-            ScreenUtils.ToggleFullscreen();
-            yield return new WaitForSeconds(1.8f);
-
-            // 3. Click [ ▶ BẮT ĐẦU CHƠI / START GAME ]
-            Status = "Starting Chapter 1...";
+            // Click [ ▶ BẮT ĐẦU CHƠI / START GAME ]
+            Status = "Starting Chapter 2...";
             Vector2 startBtnGui = new Vector2(center.x, (topY0 + 160f + 29f) * scale0);
             yield return VisualClickGui(startBtnGui);
             if (pres0 != null) pres0.ShowStartMenu = false;
-            yield return new WaitForSeconds(1.2f);
+            yield return new WaitForSeconds(1.5f);
 
-            // ==========================================
-            // CHƯƠNG 1: PHỐ CŨ HÀ NỘI
-            // ==========================================
-            Status = "Chapter 1: Intro narration...";
+            // Narration: Pacing calibrated for comfortable reading (solving rapid text issue)
+            Status = "Chapter 2: Intro narration (pacing calibrated for comfortable reading)...";
             yield return MoveMouse(center + new Vector2(0f, 60f), 0.8f);
-            yield return new WaitForSeconds(2.8f);
-
-            // Click through intro dialogs slowly
-            for (int i = 0; i < 6 && dir.Phase == Level1Phase.Intro; i++)
+            for (int i = 0; i < 4 && dir.Phase == Level1Phase.Intro; i++)
             {
+                yield return new WaitForSeconds(3.5f);
                 yield return VisualClickGui(center + new Vector2(0f, 40f));
-                yield return new WaitForSeconds(0.9f);
             }
+            while (dir.Phase == Level1Phase.Intro) yield return null;
             yield return new WaitForSeconds(1.5f);
 
             // Step 1: Walk to Point B
-            Status = "Chapter 1: Walking to Corridor B...";
+            Status = "Chapter 2: Walking to Corridor B...";
             yield return VisualClickPoint("B");
             while (player.IsMoving) yield return null;
             yield return new WaitForSeconds(1.8f);
 
-            // Step 2: Smoothly drag rotate building to Corridor Yaw (optical illusion connect!)
-            Status = "Chapter 1: Dragging to rotate house & connect corridor...";
+            // Step 2: Smoothly drag rotate building to Corridor Yaw
+            Status = "Chapter 2: Rotating house to connect corridor...";
             Vector2 dragStart = new Vector2(Screen.width * 0.68f, Screen.height * 0.70f);
             Vector2 dragEnd = new Vector2(Screen.width * 0.32f, Screen.height * 0.70f);
             float startYaw = rot.CurrentYaw;
@@ -483,16 +572,16 @@ namespace PerspectivePuzzle
                 rot.transform.eulerAngles = new Vector3(e.x, current, e.z);
             });
             GameAudio.Instance?.PlayAlign();
-            yield return new WaitForSeconds(2.2f); // Pause to appreciate optical connection!
+            yield return new WaitForSeconds(2.2f);
 
             // Step 3: Walk to Point C (enter room)
-            Status = "Chapter 1: Entering room C...";
+            Status = "Chapter 2: Entering room C...";
             yield return VisualClickPoint("C");
             while (player.IsMoving) yield return null;
             yield return new WaitForSeconds(1.8f);
 
-            // Step 4: Interact with cabinet
-            Status = "Chapter 1: Opening wooden cabinet...";
+            // Step 4: Open cabinet & solve puzzle
+            Status = "Chapter 2: Opening cabinet...";
             RoomInteractable cab = null;
             foreach (var r in FindObjectsByType<RoomInteractable>(FindObjectsSortMode.None))
                 if (r.kind == InteractKind.Cabinet) cab = r;
@@ -502,13 +591,12 @@ namespace PerspectivePuzzle
                 yield return new WaitForSeconds(2.0f);
             }
 
-            // Step 5: Solve cabinet puzzle
             Camera pc = GameObject.Find("CabinetCamera")?.GetComponent<Camera>();
             Transform blockA = GameObject.Find("BlockA")?.transform;
             Transform blockB = GameObject.Find("BlockB")?.transform;
             if (pc != null && blockA != null && blockB != null)
             {
-                Status = "Chapter 1: Turning puzzle blocks...";
+                Status = "Chapter 2: Turning puzzle blocks...";
                 yield return VisualClickWorld(blockA.position, pc);
                 yield return new WaitForSeconds(1.4f);
 
@@ -522,20 +610,38 @@ namespace PerspectivePuzzle
                 GameObject tapeGo = GameObject.Find("Cassette");
                 if (tapeGo != null)
                 {
-                    Status = "Chapter 1: Taking cassette tape...";
+                    Status = "Chapter 2: Taking cassette tape...";
                     yield return VisualClickWorld(tapeGo.transform.position, pc);
                     yield return new WaitForSeconds(2.5f);
                 }
             }
 
-            // Step 6: Walk out across wooden bridge over crack past resting dog
-            Status = "Chapter 1: Crossing wooden bridge past resting dog...";
+            // Step 5: Walk out through door onto walkway
+            Status = "Chapter 2: Walking out door onto upper walkway...";
             yield return VisualClickPoint("Door");
             while (player.IsMoving) yield return null;
-            yield return new WaitForSeconds(2.6f); // Enjoy seeing dog resting and crack bridge!
+            yield return new WaitForSeconds(2.0f);
 
-            // Step 7: Rooftop perspective points
-            Status = "Chapter 1: Climbing to rooftop speaker...";
+            // Step 6: THE DOG STAIR TRAP!
+            // Click staircase to flip 180° upside-down so dog patrols on the underside!
+            Status = "Chapter 2: Flipping staircase upside-down to dodge dog...";
+            GameObject flight = GameObject.Find("CauThang2_Flight");
+            if (flight != null)
+            {
+                yield return VisualClickWorld(flight.transform.position, Camera.main);
+            }
+            else
+            {
+                yield return VisualClickPoint("Dog");
+            }
+            if (dir != null && !dir.StairFlipped)
+            {
+                dir.ToggleStairFlip();
+            }
+            yield return new WaitForSeconds(3.0f); // Admire flipped staircase and upside-down dog patrol!
+
+            // Step 7: Rooftop perspective climbing
+            Status = "Chapter 2: Climbing to rooftop speaker...";
             foreach (string p in StoryProgress.RoofPoints)
             {
                 float tYaw = StoryProgress.YawForRoof(p);
@@ -560,105 +666,16 @@ namespace PerspectivePuzzle
             }
 
             // Step 8: Speaker pole & broadcast audio stinger
-            Status = "Chapter 1: Activating loudspeaker...";
+            // Hanoi morning broadcast chime plays and pauses for 5.0 seconds!
+            Status = "Chapter 2: Activating rooftop loudspeaker (Morning broadcast playing)...";
             yield return VisualClickGui(center + new Vector2(0f, -80f));
             yield return new WaitForSeconds(2.5f);
 
             var pres = FindAnyObjectByType<Level1Presenter>();
-            float endTimeout = Time.time + 12f;
+            float endTimeout = Time.time + 16f;
             while (!pres.EndScreen && Time.time < endTimeout) yield return null;
 
-            Status = "Chapter 1: Completed! Reading narrative...";
-            yield return new WaitForSeconds(5.0f);
-
-            // ==========================================
-            // CHUYỂN SANG CHƯƠNG 2: HÀ NỘI HOÀNG HÔN
-            // ==========================================
-            Status = "Transitioning to Chapter 2...";
-            SceneManager.LoadScene("Level2");
-            yield return new WaitForSeconds(1.8f);
-            HookAudioListener();
-
-            yield return new WaitForSeconds(1.0f);
-            var g = Level2Game.Instance;
-            Camera cam2 = g.View;
-
-            Status = "Chapter 2: Hanoi Sunset...";
-            yield return new WaitForSeconds(2.8f);
-
-            // Dismiss intro dialogs
-            for (int i = 0; i < 5 && g.State == Level2Game.Phase.Intro; i++)
-            {
-                yield return VisualClickGui(new Vector2(Screen.width * 0.5f, Screen.height * 0.45f));
-                yield return new WaitForSeconds(0.9f);
-            }
-            yield return new WaitForSeconds(1.6f);
-
-            // Step 1: Walk to lift
-            Status = "Chapter 2: Walking onto lift...";
-            yield return VisualClickL2Node(g, cam2, "Lift");
-            while (g.Player.IsMoving) yield return null;
-            yield return new WaitForSeconds(1.8f);
-
-            // Step 2: Drag lift up to rooftop
-            Status = "Chapter 2: Dragging lift up to rooftop...";
-            Vector3 wBottom = g.LiftTransform.position + Vector3.down * 0.5f;
-            Vector2 spBottom = cam2.WorldToScreenPoint(wBottom);
-            Vector2 guiLiftBottom = new Vector2(spBottom.x, Screen.height - spBottom.y);
-
-            Vector3 wTop = wBottom + g.Diorama.up * 3.4f;
-            Vector2 spTop = cam2.WorldToScreenPoint(wTop);
-            Vector2 guiLiftTop = new Vector2(spTop.x, Screen.height - spTop.y);
-
-            yield return DragMouse(guiLiftBottom, guiLiftTop, 2.4f, (t) => { });
-            g.SnapLift(Level2Rules.LiftHigh);
-            float liftWait = Time.time + 5f;
-            while (Mathf.Abs(g.LiftHeight - 3f) > 0.05f && Time.time < liftWait) yield return null;
-            yield return new WaitForSeconds(2.0f);
-
-            // Step 3: Walk to first lantern (U2)
-            Status = "Chapter 2: Lighting first lantern...";
-            yield return VisualClickL2Node(g, cam2, "U2");
-            while (g.Player.IsMoving) yield return null;
-            yield return new WaitForSeconds(2.6f);
-
-            // Step 4: Turn crimson bridge
-            Status = "Chapter 2: Turning crimson bridge across canal...";
-            Vector3 crankPos = g.BridgeTransform.parent.TransformPoint(new Vector3(4f, 1.5f, 4f));
-            yield return VisualClickWorld(crankPos, cam2);
-            g.SnapBridge(0f);
-            yield return new WaitForSeconds(2.0f);
-
-            // Step 5: Walk across bridge to second lantern (C2)
-            Status = "Chapter 2: Crossing bridge to second lantern...";
-            yield return VisualClickL2Node(g, cam2, "C2");
-            while (g.Player.IsMoving) yield return null;
-            yield return new WaitForSeconds(2.6f);
-
-            // Walk to balcony edge (C4)
-            yield return VisualClickL2Node(g, cam2, "C4");
-            while (g.Player.IsMoving) yield return null;
-            yield return new WaitForSeconds(2.0f);
-
-            // Step 6: Drag rotate world to optical perspective seam
-            Status = "Chapter 2: Dragging world to optical perspective seam...";
-            Vector2 skyStart = new Vector2(Screen.width * 0.72f, Screen.height * 0.40f);
-            Vector2 skyEnd = new Vector2(Screen.width * 0.28f, Screen.height * 0.40f);
-            yield return DragMouse(skyStart, skyEnd, 2.2f, (t) => { });
-            g.SnapWorld(Level2Rules.SeamYaw);
-            yield return new WaitForSeconds(2.8f); // Admire optical impossible connection!
-
-            // Step 7: Walk across seam to bell tower (T1)
-            Status = "Chapter 2: Walking across optical seam to bell tower...";
-            yield return VisualClickL2Node(g, cam2, "T1");
-            while (g.State == Level2Game.Phase.Play) yield return null;
-
-            // Step 8: Bell rings, 26 lanterns float up into night sky!
-            Status = "Chapter 2: Bell ringing & 26 sky lanterns rising...";
-            yield return new WaitForSeconds(7.0f);
-
-            // Step 9: Victory Screen "Hà Nội lên đèn"
-            Status = "Chapter 2: Hanoi Lights Up (Victory Screen)...";
+            Status = "Game Complete! Reading ending reflection...";
             yield return new WaitForSeconds(6.0f);
 
             // ==========================================

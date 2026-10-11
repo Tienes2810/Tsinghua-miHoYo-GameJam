@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using PerspectivePuzzle.Audio;
 using PerspectivePuzzle.Movement;
 using PerspectivePuzzle.Puzzle;
@@ -85,6 +86,9 @@ namespace PerspectivePuzzle.Level1
         Transform crackPlank;
         float plankOpen;
         bool gLinked;
+        Transform stairFlight;
+        bool stairFlipped;
+        public bool StairFlipped => stairFlipped;
 
         public string performanceBase;
         public readonly StoryProgress story = new StoryProgress();
@@ -187,6 +191,7 @@ namespace PerspectivePuzzle.Level1
                 rotator.transform.rotation = Quaternion.identity;
             CorridorBridge.Align(nodeA, nodeB, nodeC, nodeSpeaker, nodeDoor, roomFocus, cabinet);
             CacheClimb();
+            BuildStairFlight();
             HideProxies();
             if (board != null)
             {
@@ -317,6 +322,15 @@ namespace PerspectivePuzzle.Level1
             if (GameAudio.Instance != null)
                 GameAudio.Instance.PlayClick();
 
+            if (stairFlight != null && hit.collider != null && (hit.collider.transform == stairFlight || hit.collider.transform.IsChildOf(stairFlight)))
+            {
+                if (Round2Stair() || phase == Level1Phase.ToExit)
+                {
+                    ToggleStairFlip();
+                    return;
+                }
+            }
+
             RoomInteractable prop = hit.collider.GetComponentInParent<RoomInteractable>();
             if (prop != null)
             {
@@ -327,12 +341,19 @@ namespace PerspectivePuzzle.Level1
             PathNode node = hit.collider.GetComponentInParent<PathNode>();
             if (node == null)
                 return;
+
+            if (node == nodeDog)
+            {
+                ToggleStairFlip();
+                return;
+            }
+
             if (phase == Level1Phase.Round2 || phase == Level1Phase.NeedStair || phase == Level1Phase.ToRoof)
             {
                 string next = story.NextRoof;
                 bool roofClick = next != null && node == RoofNode(next) && story.RoofPointOpen(next, CurrentYaw());
-                bool dogClick = node == nodeDog && story.Speaker == SpeakerPhase.Held && !story.StairOpen(CurrentYaw());
-                if (!roofClick && !dogClick)
+                bool stairWalkClick = stairFlipped && (node == nodeE || IsUpperStep(node));
+                if (!roofClick && !stairWalkClick)
                     return;
             }
 
@@ -488,7 +509,7 @@ namespace PerspectivePuzzle.Level1
                 if (presenter != null)
                     presenter.SetCaption(lines[i]);
                 float t = 0f;
-                const float hold = 2.6f;
+                const float hold = 3.6f;
                 while (t < hold)
                 {
                     if (GameInput.GetMouseButtonDown(0))
@@ -678,38 +699,20 @@ namespace PerspectivePuzzle.Level1
 
         IEnumerator DogFall()
         {
+            if (stairFlipped)
+                yield break;
             if (dogBusy)
                 yield break;
             dogBusy = true;
-            phase = Level1Phase.NeedStair;
             if (player != null)
-            {
                 player.Halt();
-                player.MovementLocked = true;
-            }
 
-            StartCoroutine(RunDog());
             if (GameAudio.Instance != null)
                 GameAudio.Instance.PlayDogBark();
-            ClipActor actor = player != null ? player.GetComponent<ClipActor>() : null;
-            if (actor != null)
-                actor.PlayFall();
-            story.DogFail();
-            yield return new WaitForSeconds(1.4f);
-            if (player != null && nodeA != null)
-                player.PlaceAt(nodeA);
-            Say("Có lẽ con đường vừa rồi không dành cho chúng ta...\nPerhaps that path wasn't meant for us.", 3.5f);
-            if (presenter != null)
-            {
-                presenter.hint = "Xoay nhà để tìm lối đi an toàn tránh chó · Rotate to find a safe path";
-                presenter.showRotate = true;
-            }
-            yield return new WaitForSeconds(1.6f);
-            if (player != null)
-                player.MovementLocked = false;
-            phase = Level1Phase.Round2;
+
+            ToggleStairFlip();
+            yield return new WaitForSeconds(0.65f);
             dogBusy = false;
-            routeShown = "";
         }
 
         IEnumerator RunDog()
@@ -900,13 +903,15 @@ namespace PerspectivePuzzle.Level1
             if (actor != null)
                 actor.Carrying = false;
 
-            float clipLength = PlayStinger();
+            PlayStinger();
             if (rig != null)
                 rig.MoveFocus(rig.lookAt, rig.ortho * 1.35f);
-            yield return new WaitForSeconds(Mathf.Min(1.2f, clipLength));
+
+            // Morning broadcast music on rooftop loudspeaker - pause for 5.0 seconds as requested!
+            yield return new WaitForSeconds(5.0f);
             if (presenter != null)
                 presenter.SetCaption(FinalLine);
-            yield return new WaitForSeconds(Mathf.Max(1.6f, clipLength - 1.2f));
+            yield return new WaitForSeconds(3.0f);
 
             float dim = presenter != null ? presenter.dim : 0f;
             while (presenter != null && dim < 1f)
@@ -917,7 +922,7 @@ namespace PerspectivePuzzle.Level1
             }
 
             if (presenter != null)
-                presenter.ShowEndScreen(FinalLine, "Cảm ơn bạn đã mang tiếng nói của bà trở về  ·  Thank you for bringing her voice home.");
+                presenter.ShowEndScreen(FinalLine, "Cảm ơn bạn đã mang tiếng loa của bà trở về  ·  Thank you for bringing her voice home.");
         }
 
         IEnumerator PulseOnce(Transform target)
@@ -941,9 +946,11 @@ namespace PerspectivePuzzle.Level1
             if (source == null)
                 source = gameObject.AddComponent<AudioSource>();
             source.spatialBlend = 0f;
-            AudioClip clip = RadioStinger.Create();
+            AudioClip clip = Resources.Load<AudioClip>("Audio/morning_broadcast");
+            if (clip == null)
+                clip = RadioStinger.Create();
             source.PlayOneShot(clip);
-            return clip.length;
+            return clip != null ? clip.length : 5.0f;
         }
 
         float CurrentYaw()
@@ -962,7 +969,7 @@ namespace PerspectivePuzzle.Level1
         bool DogTrapLive(float yaw)
         {
             bool held = story.Speaker == SpeakerPhase.Held;
-            return held && Round2Stair() && story.RoofReached == 0 && !story.StairOpen(yaw);
+            return held && Round2Stair() && story.RoofReached == 0 && !stairFlipped && !story.StairOpen(yaw);
         }
 
         void WalkDog()
@@ -982,32 +989,50 @@ namespace PerspectivePuzzle.Level1
 
             Vector3 target;
             Vector3 face;
-            bool safe = story.StairOpen(CurrentYaw()) || story.RoofReached > 0;
-            if (safe)
+            Vector3 upVec = Vector3.up;
+
+            if (stairFlipped)
             {
-                // Dog Trigger of the old route is off. The dog stays in the house, away from the stair.
-                target = DogRest;
-                face = Vector3.back;
-            }
-            else
-            {
-                // Pace CauThang2 treads 1..8.
+                // Dog patrols on the UNDERSIDE (mặt dưới) of the stairs!
                 dogWalk += Time.deltaTime * 1.2f;
                 const float span = 14f;
                 float loop = dogWalk % span;
                 float along = 1f + (loop <= 7f ? loop : span - loop);
                 int i0 = Mathf.Clamp(Mathf.FloorToInt(along), 1, 8);
                 int i1 = Mathf.Min(i0 + 1, 8);
-                Vector3 a = CorridorBridge.UpperTread(i0) - Vector3.up * 0.04f;
-                Vector3 b = CorridorBridge.UpperTread(i1) - Vector3.up * 0.04f;
-                target = Vector3.Lerp(a, b, along - i0);
+                Vector3 a = CorridorBridge.UpperTread(i0);
+                Vector3 b = CorridorBridge.UpperTread(i1);
+                Vector3 inclineNormal = new Vector3(0f, 0.8575f, 0.5145f);
+                target = Vector3.Lerp(a, b, along - i0) - inclineNormal * 0.40f - Vector3.up * 0.18f;
                 face = loop <= 7f ? Vector3.back : Vector3.forward;
+                // Upside-down orientation: up vector points into underside of treads!
+                upVec = -inclineNormal;
+            }
+            else
+            {
+                bool safe = story.StairOpen(CurrentYaw()) || story.RoofReached > 0;
+                if (safe)
+                {
+                    target = DogRest;
+                    face = Vector3.back;
+                }
+                else
+                {
+                    dogWalk += Time.deltaTime * 1.2f;
+                    const float span = 14f;
+                    float loop = dogWalk % span;
+                    float along = 1f + (loop <= 7f ? loop : span - loop);
+                    int i0 = Mathf.Clamp(Mathf.FloorToInt(along), 1, 8);
+                    int i1 = Mathf.Min(i0 + 1, 8);
+                    Vector3 a = CorridorBridge.UpperTread(i0) - Vector3.up * 0.04f;
+                    Vector3 b = CorridorBridge.UpperTread(i1) - Vector3.up * 0.04f;
+                    target = Vector3.Lerp(a, b, along - i0);
+                    face = loop <= 7f ? Vector3.back : Vector3.forward;
+                }
             }
 
-            // The patrol target already advances tread by tread each frame. Switching between the
-            // stair patrol and the room rest is a jump, never a glide across the stairwell void.
             dogPatrol.localPosition = target;
-            dogPatrol.localRotation = Quaternion.LookRotation(face, Vector3.up);
+            dogPatrol.localRotation = Quaternion.LookRotation(face, upVec);
         }
 
         Transform BuildingRoot()
@@ -1033,9 +1058,22 @@ namespace PerspectivePuzzle.Level1
             HideRoofMarks();
             UnlinkRoof();
             PathNode hall = FindClimb("Hall");
-            if (trap && !dogBusy)
+            if (stairFlipped && climbing)
+            {
+                LinkChain(hall, FindClimb("Up1"), FindClimb("Up2"), FindClimb("Up3"), FindClimb("Up4"),
+                          FindClimb("Up5"), FindClimb("Up6"), FindClimb("Up7"), FindClimb("Up8"),
+                          FindClimb("Up9"), FindClimb("Up10"), nodeE);
+                ShowNode(nodeDog, false);
+                if (nodeE != null)
+                    ShowNode(nodeE, true);
+                if (phase == Level1Phase.Round2 || phase == Level1Phase.NeedStair)
+                    phase = Level1Phase.ToRoof;
+            }
+            else if (trap && !dogBusy)
+            {
                 LinkChain(hall, FindClimb("Up1"), FindClimb("Up2"), FindClimb("Up3"), nodeDog);
-            ShowNode(nodeDog, trap && !dogBusy);
+            }
+            ShowNode(nodeDog, !stairFlipped && trap && !dogBusy);
             string next = story.NextRoof;
             bool openPoint = climbing && next != null && story.RoofPointOpen(next, yaw);
             if (openPoint)
@@ -1046,17 +1084,19 @@ namespace PerspectivePuzzle.Level1
                     phase = Level1Phase.ToRoof;
             }
 
-            string shown = trap ? "dog" : openPoint ? next : "";
+            string shown = stairFlipped ? "clear" : trap ? "dog" : openPoint ? next : "";
             if (climbing && shown != routeShown)
             {
                 routeShown = shown;
                 if (presenter != null)
                 {
-                    presenter.showRotate = !openPoint;
-                    if (openPoint)
+                    presenter.showRotate = !openPoint && !stairFlipped;
+                    if (stairFlipped)
+                        presenter.hint = "Bước lên cầu thang về phía sân thượng · Walk up the stairs to the rooftop";
+                    else if (openPoint)
                         presenter.hint = "Click điểm vàng để bước tiếp · Click the gold point to advance";
                     else if (trap && story.RoofReached == 0 && phase == Level1Phase.Round2)
-                        presenter.hint = "Lên cầu thang hướng về sân thượng · Take the stair up to the roof";
+                        presenter.hint = "Click cầu thang để lật ngược tránh chó · Click stairs to flip & dodge dog";
                     else
                         presenter.hint = "Kéo để xoay nhà · Drag to turn the house";
                 }
@@ -1067,17 +1107,109 @@ namespace PerspectivePuzzle.Level1
         {
             if (dogBusy || player == null || nodeDog == null || player.CurrentNode != nodeDog)
                 return;
-            if (story.Speaker != SpeakerPhase.Held || story.StairOpen(CurrentYaw()))
+            if (stairFlipped || story.Speaker != SpeakerPhase.Held || story.StairOpen(CurrentYaw()))
                 return;
             if (phase != Level1Phase.Round2 && phase != Level1Phase.NeedStair && phase != Level1Phase.ToRoof
                 && phase != Level1Phase.ToExit)
                 return;
-            StartCoroutine(DogFall());
+            ToggleStairFlip();
         }
 
         void CacheClimb()
         {
             nodeE = FindClimb("E");
+        }
+
+        void BuildStairFlight()
+        {
+            Transform root = BuildingRoot();
+            if (root == null)
+                return;
+            Transform existing = root.Find("CauThang2_Flight");
+            if (existing != null)
+            {
+                stairFlight = existing;
+                return;
+            }
+
+            var flightGo = new GameObject("CauThang2_Flight");
+            stairFlight = flightGo.transform;
+            stairFlight.SetParent(root, false);
+            Vector3 pMid = new Vector3(1.60f, 6.59f, 3.62f);
+            stairFlight.localPosition = pMid;
+
+            // Box collider covering the flight so clicks hit the staircase
+            var col = flightGo.AddComponent<BoxCollider>();
+            col.center = Vector3.zero;
+            col.size = new Vector3(1.3f, 1.2f, 5.0f);
+
+            // Step treads on the flippable flight
+            Material stairMat = Resources.Load<Material>("Mat_Stair");
+#if UNITY_EDITOR
+            if (stairMat == null)
+                stairMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Materials/Mat_Stair.mat");
+#endif
+            for (int j = 0; j <= 8; j++)
+            {
+                var step = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                step.name = "Tread_" + j;
+                step.transform.SetParent(stairFlight, false);
+                Vector3 worldPos = CorridorBridge.UpperTread(j);
+                step.transform.localPosition = worldPos - pMid;
+                step.transform.localScale = new Vector3(0.92f, 0.22f, 0.48f);
+                var stepCol = step.GetComponent<Collider>();
+                if (stepCol != null) Destroy(stepCol);
+                var rend = step.GetComponent<Renderer>();
+                if (rend != null)
+                {
+                    if (stairMat != null) rend.sharedMaterial = stairMat;
+                    else rend.material.color = new Color(0.78f, 0.72f, 0.62f);
+                }
+            }
+        }
+
+        public void ToggleStairFlip()
+        {
+            if (player != null && player.IsMoving)
+                return;
+
+            stairFlipped = !stairFlipped;
+            if (stairFlight != null)
+            {
+                Vector3 inclineAxis = new Vector3(0f, 2.40f, -4.00f).normalized;
+                Quaternion targetRot = stairFlipped
+                    ? Quaternion.AngleAxis(180f, inclineAxis)
+                    : Quaternion.identity;
+                stairFlight.DOKill();
+                stairFlight.DOLocalRotateQuaternion(targetRot, 0.65f).SetEase(Ease.InOutSine);
+            }
+
+            if (GameAudio.Instance != null)
+                GameAudio.Instance.PlayAlign();
+
+            if (stairFlipped)
+            {
+                Say("Cầu thang đã lật ngược! Chú chó giờ đang đi ở mặt dưới, lối đi phía trên đã hoàn toàn thông thoáng!\nThe stairs flipped! The dog is now walking underneath, clearing the upper path.", 3.8f);
+                if (presenter != null)
+                {
+                    presenter.hint = "Bước lên cầu thang về phía sân thượng · Walk up the stairs to the rooftop";
+                    presenter.showRotate = false;
+                }
+            }
+            else
+            {
+                Say("Cầu thang đã lật lại như cũ.\nThe stairs flipped back.", 2.5f);
+            }
+
+            ObserveYaw();
+        }
+
+        bool IsUpperStep(PathNode n)
+        {
+            if (n == null) return false;
+            for (int i = 0; i < UpperSteps.Length; i++)
+                if (n.name == UpperSteps[i]) return true;
+            return false;
         }
 
         PathNode FindClimb(string name)

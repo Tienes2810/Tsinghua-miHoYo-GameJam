@@ -150,7 +150,7 @@ namespace PerspectivePuzzle.Level2
             float a = Mathf.Clamp01(Time.time / 1.2f);
             Paint(smallStyle, new Color(GoldInk.r, GoldInk.g, GoldInk.b, a));
             smallStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(0, h * 0.6f, w, 30), "CHƯƠNG 2  ·  CHAPTER 2", smallStyle);
+            GUI.Label(new Rect(0, h * 0.6f, w, 30), "CHƯƠNG 1  ·  CHAPTER 1", smallStyle);
             Paint(bigStyle, new Color(Ink.r, Ink.g, Ink.b, a));
             GUI.Label(new Rect(0, h * 0.63f, w, 90), "Hà Nội Hoàng Hôn", bigStyle);
             Paint(titleStyle, new Color(Ink.r, Ink.g, Ink.b, a * 0.9f));
@@ -177,7 +177,7 @@ namespace PerspectivePuzzle.Level2
                 Fill(new Rect(24, 22, pw, ph), Plate);
                 Fill(new Rect(24, 22, 4, ph), GoldInk);
                 Paint(smallStyle, GoldInk);
-                GUI.Label(new Rect(42, 26, pw - 30, 22), "CHƯƠNG 2 · HÀ NỘI HOÀNG HÔN / CHAPTER 2", smallStyle);
+                GUI.Label(new Rect(42, 26, pw - 30, 22), "CHƯƠNG 1 · HÀ NỘI HOÀNG HÔN / CHAPTER 1: HANOI SUNSET", smallStyle);
                 Paint(titleStyle, Ink);
                 GUI.Label(new Rect(42, 46, pw - 32, ph - 30), g.Objective, titleStyle);
             }
@@ -254,8 +254,8 @@ namespace PerspectivePuzzle.Level2
         {
             float y = withRestart ? 84f : 22f;
             float btnW = 300f;
-            if (Button(new Rect(w - (btnW + 24f), y, btnW, 40f), "← Chương 1 / Chapter 1", Plate))
-                g.BackToChapter1();
+            if (Button(new Rect(w - (btnW + 24f), y, btnW, 40f), "Tiếp tục: Chương 2 → / Chapter 2 →", Plate))
+                g.GoToChapter2();
             if (withRestart && Button(new Rect(w - (btnW + 24f), y + 48f, btnW, 40f), "Chơi lại / Restart  (R)", Plate))
                 g.Restart();
             string fsLabel = ScreenUtils.IsFullscreen ? "🗗 Cửa sổ / Window (F11)" : "⛶ Toàn màn hình / Fullscreen (F11)";
@@ -270,7 +270,7 @@ namespace PerspectivePuzzle.Level2
             Fill(new Rect(0, 0, w, h), new Color(0.03f, 0.03f, 0.08f, 0.5f * a));
             Paint(smallStyle, new Color(GoldInk.r, GoldInk.g, GoldInk.b, a));
             smallStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(0, h * 0.25f, w, 30), "CHƯƠNG 2 HOÀN THÀNH  ·  CHAPTER 2 COMPLETE", smallStyle);
+            GUI.Label(new Rect(0, h * 0.25f, w, 30), "CHƯƠNG 1 HOÀN THÀNH  ·  CHAPTER 1 COMPLETE", smallStyle);
             Paint(bigStyle, new Color(Ink.r, Ink.g, Ink.b, a));
             GUI.Label(new Rect(0, h * 0.28f, w, 90), "Hà Nội lên đèn", bigStyle);
             Paint(bodyStyle, new Color(Ink.r, Ink.g, Ink.b, a * 0.9f));
@@ -291,8 +291,8 @@ namespace PerspectivePuzzle.Level2
                 float y = h * 0.29f + 230f;
                 if (Button(new Rect(x, y, bw, 56f), "Chơi lại / Replay  (R)", new Color(0.55f, 0.16f, 0.12f, 0.95f)))
                     g.Restart();
-                if (Button(new Rect(x + bw + gap, y, bw, 56f), "← Chương 1 / Chapter 1  (C)", Plate))
-                    g.BackToChapter1();
+                if (Button(new Rect(x + bw + gap, y, bw, 56f), "Sang Chương 2 / Chapter 2  (C)", Plate))
+                    g.GoToChapter2();
                 if (Button(new Rect(x + (bw + gap) * 2, y, bw, 56f), "Thoát / Quit  (Esc)", Plate))
                     Application.Quit();
             }

@@ -53,6 +53,13 @@ namespace PerspectivePuzzle.Level2
             return new Material(glow) { color = color };
         }
 
+        public static void SafeDestroy(Object obj)
+        {
+            if (obj == null) return;
+            if (Application.isPlaying) Object.Destroy(obj);
+            else Object.DestroyImmediate(obj);
+        }
+
         // ---------- primitives ----------
 
         static Mesh Cube
@@ -63,7 +70,7 @@ namespace PerspectivePuzzle.Level2
                 {
                     var tmp = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cube = tmp.GetComponent<MeshFilter>().sharedMesh;
-                    Object.Destroy(tmp);
+                    SafeDestroy(tmp);
                 }
                 return cube;
             }
@@ -95,7 +102,7 @@ namespace PerspectivePuzzle.Level2
         {
             var go = GameObject.CreatePrimitive(type);
             go.name = name;
-            Object.Destroy(go.GetComponent<Collider>());
+            SafeDestroy(go.GetComponent<Collider>());
             go.transform.SetParent(parent, false);
             go.transform.localPosition = center;
             go.transform.localScale = scale;

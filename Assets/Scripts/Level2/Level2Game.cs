@@ -757,11 +757,13 @@ namespace PerspectivePuzzle.Level2
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
-        public void BackToChapter1()
+        public void GoToChapter2()
         {
             DOTween.Kill(this);
             SceneManager.LoadScene("Level1");
         }
+
+        public void BackToChapter1() => GoToChapter2();
 
         void ShowCaption(string text, float seconds)
         {
@@ -888,6 +890,93 @@ namespace PerspectivePuzzle.Level2
             bool bridgeHint = hintTarget == bridgeT;
             liftMat.color = Color.Lerp(lacquer, hot, liftHint ? pulse : 0f);
             bridgeMat.color = Color.Lerp(lacquer, hot, bridgeHint ? pulse : 0f);
+        }
+
+        public void SetupForScreenshot(float worldYaw, float bridgeYaw, float liftHeight, float mood, string playerNodeName, float orthoSize = 6.4f, Vector3? customFocus = null)
+        {
+            if (root == null)
+            {
+                Instance = this;
+                DOTween.Init();
+                if (kit == null)
+                    kit = new L2Kit(litTemplate, vertexTemplate, glowTemplate);
+                Hud = GetComponent<Level2Hud>();
+                if (Hud != null) Hud.enabled = false;
+                SetupCamera();
+                BuildSky();
+                BuildWorld();
+                BuildPlayer();
+            }
+            else
+            {
+                if (Hud != null) Hud.enabled = false;
+            }
+
+            WorldYaw = worldYaw;
+            BridgeYaw = bridgeYaw;
+            LiftHeight = liftHeight;
+            ApplyWorld();
+            ApplyBridge();
+            ApplyLift();
+            RelinkAll();
+            ApplyMood(mood);
+
+            // Light up lanterns
+            for (int i = 0; i < lanterns.Length; i++)
+            {
+                if (lanterns[i] != null)
+                {
+                    lanterns[i].Ignite(kit);
+                }
+            }
+
+            // Warm windows
+            for (int g = 0; g < windowGroups.Length; g++)
+            {
+                if (windowGroups[g] != null)
+                {
+                    foreach (var r in windowGroups[g])
+                    {
+                        if (r != null) r.sharedMaterial = windowWarm;
+                    }
+                }
+            }
+
+            // Fairy lights
+            if (fairyLights != null && fairyOn != null)
+            {
+                foreach (var r in fairyLights)
+                {
+                    if (r != null) r.sharedMaterial = fairyOn;
+                }
+            }
+
+            // Position player
+            if (!string.IsNullOrEmpty(playerNodeName) && nodes.TryGetValue(playerNodeName, out PathNode pNode))
+            {
+                if (player != null)
+                {
+                    player.PlaceAt(pNode);
+                    if (playerNodeName == "u2" || playerNodeName == "u1")
+                        player.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+                    else if (playerNodeName == "c4" || playerNodeName == "c3")
+                        player.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                }
+            }
+
+            // Hide marker
+            if (marker != null) marker.gameObject.SetActive(false);
+
+            // Configure camera
+            if (view != null)
+            {
+                float aspect = 16f / 9f;
+                view.orthographicSize = orthoSize;
+                focus = focusTarget = customFocus ?? new Vector3(0f, 1.25f, 0f);
+                Quaternion rot = Quaternion.Euler(Level2Rules.CameraPitch, Level2Rules.CameraYaw, 0f);
+                view.transform.SetPositionAndRotation(focus - rot * Vector3.forward * 60f, rot);
+                LayoutSky(aspect);
+            }
         }
     }
 }
