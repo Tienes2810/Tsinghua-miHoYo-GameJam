@@ -309,7 +309,7 @@ namespace PerspectivePuzzle.Level2
                 if (player.IsMoving || bridgeTween != null || worldTween != null)
                 {
                     drag = Drag.Blocked;
-                    ShowToast("Wait until the walk is finished.");
+                    ShowToast("Đợi nhân vật đi xong · Wait until walk is finished");
                     return;
                 }
 
@@ -409,7 +409,7 @@ namespace PerspectivePuzzle.Level2
             {
                 if (Busy)
                 {
-                    ShowToast("Wait until the walk is finished.");
+                    ShowToast("Đợi nhân vật đi xong · Wait until walk is finished");
                     return;
                 }
                 if (player.CurrentNode == liftNode)
@@ -421,7 +421,7 @@ namespace PerspectivePuzzle.Level2
             {
                 if (Busy)
                 {
-                    ShowToast("Wait until the walk is finished.");
+                    ShowToast("Đợi nhân vật đi xong · Wait until walk is finished");
                     return;
                 }
                 if (PlayerOnBridge())
@@ -440,7 +440,7 @@ namespace PerspectivePuzzle.Level2
                 return false;
             if (liftTween != null || bridgeTween != null || worldTween != null)
             {
-                ShowToast("Wait a moment...");
+                ShowToast("Xin chờ một chút · Wait a moment...");
                 return false;
             }
 

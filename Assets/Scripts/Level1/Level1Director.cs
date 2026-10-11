@@ -340,7 +340,7 @@ namespace PerspectivePuzzle.Level1
                 return;
             if (phase != Level1Phase.InRoom)
             {
-                Say("The room is still out of reach.", 1.8f);
+                Say("Căn phòng vẫn còn ở quá xa tầm với.\nThe room is still out of reach.", 2.2f);
                 return;
             }
 
@@ -794,7 +794,7 @@ namespace PerspectivePuzzle.Level1
             if (presenter != null)
             {
                 presenter.showRotate = true;
-                presenter.hint = "Drag to turn the house.";
+                presenter.hint = "Kéo ngang để xoay nhà · Drag to turn the house";
             }
         }
 
@@ -806,7 +806,7 @@ namespace PerspectivePuzzle.Level1
             if (player != null)
                 player.MovementLocked = true;
             if (presenter != null)
-                presenter.SetCaption("Back then, standing here was enough for the whole neighborhood to hear.");
+                presenter.SetCaption("Ngày xưa, đứng từ đây là cả khu phố đều có thể lắng nghe tiếng loa của bà...\nBack then, standing here was enough for the whole neighborhood to hear.");
             ShowNode(nodePole, true);
         }
 

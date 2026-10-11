@@ -125,10 +125,10 @@ namespace PerspectivePuzzle.Level1
 
             RoomInteractable table = Prop(root.transform, "Table", new Vector3(xRoom - unit * 2f, yGap + unit, zGap + unit * 2f),
                 new Vector3(unit * 2.2f, unit * 0.8f, unit * 1.4f), new Color(0.45f, 0.28f, 0.18f),
-                InteractKind.Clue, "Before every meal, Grandma would turn it on.");
+                InteractKind.Clue, "Trước mỗi bữa cơm, bà đều bật loa để nghe tin tức...\nBefore every meal, Grandma would turn it on.");
             RoomInteractable shelf = Prop(root.transform, "Shelf", new Vector3(xRoom + unit * 2f, yGap + unit * 2f, zGap - unit),
                 new Vector3(unit * 1.6f, unit * 2.4f, unit * 0.6f), new Color(0.32f, 0.34f, 0.3f),
-                InteractKind.Clue, "Back then, the loudspeaker’s voice would echo through the halls even before Grandma called us to dinner.");
+                InteractKind.Clue, "Hồi đó, tiếng loa vang khắp các gian nhà trước cả khi bà gọi ăn cơm.\nBack then, the loudspeaker's voice echoed through the halls even before Grandma called us to dinner.");
             RoomInteractable cabinet = Prop(root.transform, "Cabinet", new Vector3(xRoom, yGap + unit * 1.6f, zGap - unit * 2.5f),
                 new Vector3(unit * 2f, unit * 3f, unit * 1.1f), new Color(0.4f, 0.24f, 0.16f),
                 InteractKind.Cabinet, null);
